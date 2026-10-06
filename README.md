@@ -24,7 +24,7 @@ Offline decisions are provisional until the server receives the scan. A scanner 
 | `backend/` | Laravel 13 API, PostgreSQL persistence, Sanctum authentication, ticket issuance, TOTP verification, scan reconciliation, and audit records |
 | `admin-web/` | React, TypeScript, and Vite administrator dashboard |
 | `security-scanner/` | Expo and React Native student wallet and security scanner; Expo SecureStore, SQLite, camera scanning, and offline sync |
-| `docs/` | API contracts and implementation documentation |
+| `docs/` | API contracts, setup guides, and presentation documentation |
 | `architecture/` | System architecture and architecture decision records |
 
 The shared development environment can use Supabase PostgreSQL. Fedora presentation mode uses a separate local PostgreSQL database managed by Lerd; it does not use Supabase.
@@ -97,6 +97,7 @@ Build the dashboard from `admin-web/` with `npm run build`. Check the Expo app w
 
 ## More documentation
 
+- [Complete Fedora, Lerd, Supabase, admin-web, and Expo setup guide](docs/setup-guide.md)
 - [Presentation run of show, system walkthrough, roadmap, and speaker notes](docs/presentation/README.md)
 - [Backend API and demo setup](backend/README.md)
 - [Administrator dashboard](admin-web/README.md)
