@@ -112,7 +112,7 @@ try {
     } else {
         Set-Location (Join-Path $RootDir 'security-scanner')
         $env:EXPO_PUBLIC_API_BASE_URL = $apiBaseUrl
-        npx expo start --tunnel --go
+        npx expo start --tunnel ngrok --go
     }
 } finally {
     foreach ($process in $TunnelProcesses) {
