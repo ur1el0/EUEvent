@@ -1,49 +1,36 @@
-# MSEUF Offline Ticketing - Troubleshooting Runbook
+# EUEvent Troubleshooting Runbook
 
-This runbook documents common development and runtime exceptions, their root causes, and verified resolution procedures.
+## 1. Supabase or migration errors
 
----
+- Check the current `.env` values without sharing secrets. Verify the host, port, database, username, and password match the Supabase connection mode selected for this project.
+- Clear cached Laravel configuration after changing `.env`: `php artisan config:clear`.
+- Use `php artisan migrate:status` to confirm migrations are applied to the database configured for this checkout. Laravel tests use in-memory SQLite and do not migrate Supabase.
+- Row-locking behavior must be checked against PostgreSQL. A passing SQLite test does not prove Supabase locking behavior or throughput.
 
-## 1. Database & Concurrency Issues
+## 2. Student or staff cannot sign in
 
-### 1.1 Supabase Connection Error: `Cannot execute SELECT FOR UPDATE in transaction pooling mode`
-* **Root Cause:** Laravel is connected to Supabase using the Transaction Pooler (Port 6543) instead of the Session Pooler (Port 5432). Transaction poolers terminate connections when explicit row-level locks or transaction-scoped state is held.
-* **Resolution:**
-  1. Open `.env`.
-  2. Verify `DB_PORT=5432` (and ensure your Supabase connection string specifies the Session Pooler).
-  3. Clear Laravel config cache: `php artisan config:clear`.
+- Confirm the email/student number and account role are correct.
+- Security staff must have `is_active = true`. An administrator can activate the account in the Staff page; activation does not restore previously revoked tokens, so staff sign in again.
+- If a token was revoked or a password changed, sign in again to obtain a fresh token.
+- Password recovery requires the server's mail transport to be configured. The API deliberately gives the same response for unknown and eligible emails. Check server mail logs and the recipient's spam/junk folder.
 
-### 1.2 Deadlocks during Concurrent Sync Bursts
-* **Root Cause:** Multiple scanner sync batches are locking tickets in inconsistent order.
-* **Resolution:** In `SyncReconciliationService`, always sort incoming ticket IDs ascending (`sort($ticketIds)`) before acquiring pessimistic locks (`lockForUpdate()`) to prevent circular wait deadlocks.
+## 3. QR code rejected as expired or invalid
 
----
+- Confirm the phone clock uses automatic date/time and compare it with the scanner. The scanner currently accepts the exact current 30-second step, with no previous/next-step tolerance.
+- A QR screenshot can still work during the same active step. Once that 30-second step changes, it should be rejected.
+- Check that the scanner has the correct event and gate manifest downloaded and that the event is scheduled or in progress.
+- A stale manifest may not contain recent ticket revocations, schedule changes, or claims at other offline gates. Reconnect and refresh before continuing when the event has changed.
 
-## 2. Cryptographic & TOTP Issues
+## 4. Offline scanner behavior
 
-### 2.1 Legitimate Student QR Token Rejected as `EXPIRED`
-* **Root Cause:** Hardware clock drift on the student device or scanner device exceeds the allowed window.
-* **Resolution:**
-  1. Inspect the scanner hardware time against standard NTP (`pool.ntp.org`). The scanner clock is the cryptographic trust anchor.
-  2. In `services/totpService.ts`, verify window parameter is set to $w = 1$ (`window: 1`). This allows tokens within $\pm 30$ seconds.
+- A phone needs to download its gate manifest before going offline. Without a saved copy, it cannot validate tickets offline.
+- A green/local accepted result is provisional until synchronization. It does not mean another disconnected gate has not accepted the same ticket.
+- When two offline scans conflict, sync both devices and review the collision record. The software cannot determine physical admission order from untrusted device timestamps.
+- Manual override is not supported. Follow the event lead's physical exception procedure.
+- Expo Go may lose its JavaScript bundle if the network that provides Metro is unavailable. For a demonstration that must continue through Wi-Fi loss, use a built installed build.
 
-### 2.2 Base32 Secret Encoding / Decoding Mismatch
-* **Root Cause:** Inconsistent padding or lowercase/uppercase character representation between Laravel `Crypt` and `otpauth`.
-* **Resolution:** Ensure the base32 secret is normalized to uppercase and stripped of whitespace before passing into `new OTPAuth.TOTP({ secret: ... })`.
+## 5. Repeated sync records or collision alerts
 
----
-
-## 3. Offline Sync & Mobile Issues
-
-### 3.1 Network Request Failed on Android Device
-* **Root Cause:** Android security prevents connecting to unencrypted HTTP on `localhost` or `127.0.0.1` from mobile apps.
-* **Resolution:**
-  1. When using a physical device connected via USB, run:
-     ```bash
-     adb reverse tcp:8000 tcp:8000
-     ```
-  2. Configure `mobile/src/config/api.ts` to use `http://10.0.2.2:8000` (for Android emulator) or `http://localhost:8000` (with adb reverse on physical device).
-
-### 3.2 False `SPLIT_BRAIN_COLLISION` Alert on Network Retries
-* **Root Cause:** Scanner generates a new `scan_id` on every HTTP retry instead of preserving the original UUID v4 created at the moment of scan.
-* **Resolution:** In `pending_sync_queue`, the `scan_id` must be generated once upon optical detection and stored permanently in SQLite. Retries must read the existing `scan_id` from SQLite and transmit it unchanged.
+- Queue retries must preserve their original `scan_id`. The same ID represents retry of one physical scan.
+- A different ID for a ticket already claimed is treated as a possible duplicate and audited.
+- `server_received_at` says when the server received a scan. It does not prove which disconnected device scanned physically first.

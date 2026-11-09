@@ -16,6 +16,8 @@ This document records the API conventions for this project and marks which route
 | Method and path | Access | Implemented behavior |
 | --- | --- | --- |
 | `POST /api/v1/auth/login` | Public, throttled | Issues a Sanctum token and returns the user identity and role. |
+| `POST /api/v1/auth/password/email` | Public, throttled | Returns the same 202 response for any email; emails a one-time reset token only to eligible student or security staff accounts. Delivery requires configured mail. |
+| `POST /api/v1/auth/password/reset` | Public, throttled | Accepts email, one-time token, and confirmed new password. Successful reset revokes the user's existing API tokens. |
 | `POST /api/v1/auth/logout` | Authenticated | Revokes the current token. |
 | `GET /api/v1/auth/me` | Authenticated | Returns the current user identity and role. |
 | `GET /api/v1/staff/gates` | Security staff | Lists only the authenticated staff member's assigned event gates with non-secret event and ticket-count metadata. Response includes `Cache-Control: private, no-store`. |
@@ -32,9 +34,21 @@ This document records the API conventions for this project and marks which route
 | `POST /api/v1/admin/events/{event}/tickets` | Administrator | Issues or reissues a ticket to an existing student account for a gate assigned to the event. |
 | `GET /api/v1/admin/students` | Administrator | Returns a paginated student directory with optional name, email, or student-number search. |
 | `POST /api/v1/admin/students` | Administrator | Creates a student account with a server-assigned student role and hashed initial password. |
+| `GET /api/v1/admin/security-staff` | Administrator | Returns scanner staff accounts with active status. |
+| `PATCH /api/v1/admin/security-staff/{staff}/status` | Administrator | Activates/deactivates one security staff account. Deactivation revokes server-side API tokens and writes an admin activity record. A disconnected scanner cannot receive the change until it reconnects. |
 | `GET /api/v1/admin/activity-logs` | Administrator | Returns recent account, event-change, scan-decision, and anomaly activity with filters. |
 
 For exact response fields, inspect the matching Laravel controller and API Resource. The login response currently has `token` and `user`; it does not promise the extra `token_type`, `email`, `created_at`, or `student_id` fields shown in the reference. The metrics resource currently reports `pending_sync_estimate: null` because scanner heartbeat counts are not implemented. Clients must render this as unavailable, not zero.
+
+## Mobile password recovery
+
+`POST /api/v1/auth/password/email` accepts `{ "email": "..." }`. The route is limited to five requests per minute per client IP. It responds with HTTP 202 and the same message whether the account exists or is eligible. Student and Security Staff accounts receive a one-time token by mail; administrators are not eligible for this mobile flow. A working Laravel mail transport is required for real delivery.
+
+`POST /api/v1/auth/password/reset` accepts `email`, `token`, `password`, and `password_confirmation`. Passwords must contain at least 12 characters and match. The token expires in 60 minutes and is single use. Success changes the password, rotates the remember token, deletes the user's Sanctum tokens, and returns a message to sign in again. An invalid, expired, already-used token, or ineligible account returns a generic 422 message.
+
+## Security staff account status
+
+`PATCH /api/v1/admin/security-staff/{staff}/status` accepts `{ "is_active": true|false }`. Only an administrator may use it and the target must have the Security Staff role. Deactivation deletes the staff member's Sanctum tokens and records an `AdminActivityLog` action. It does not remove gate assignments or erase a disconnected phone's cached manifest. Re-activation allows a new login but does not restore deleted tokens.
 
 ## Administrator event setup contract
 
@@ -42,7 +56,7 @@ All routes below require a Sanctum bearer token and the `administrator` role. Re
 
 ### `GET /api/v1/admin/event-options`
 
-Returns `{ "venues": [{ "id", "name", "location_details", "gates": [{ "id", "code", "name" }] }], "security_staff": [{ "id", "name", "email" }] }`. Gate IDs identify physical `venue_gates`; assignment IDs identify users whose role is exactly `security_staff`.
+Returns `{ "venues": [{ "id", "name", "location_details", "gates": [{ "id", "code", "name" }] }], "security_staff": [{ "id", "name", "email", "is_active" }] }`. Gate IDs identify physical `venue_gates`; assignment IDs identify users whose role is exactly `security_staff`. The admin UI prevents adding inactive staff to a new assignment while retaining existing assignment details.
 
 ### Event listing and detail
 
@@ -94,7 +108,7 @@ The gate must belong to the event venue; every staff ID must belong to a securit
 
 ### Scanner sync proof and outcomes
 
-Each `POST /api/v1/sync/batch` record contains `scan_id`, `ticket_id`, `gate_id`, `scanned_at`, `is_override`, optional `event_configuration_version`, `code_step`, and `code`. Laravel recomputes the six-digit HMAC-SHA1 code against the encrypted ticket secret and checks that the QR step is within one 30-second window of the device scan time. The one-time code is never written to scan logs. Responses contain `acknowledged_scan_ids` and one `outcomes` entry per scan with `decision` (`accepted` or `rejected`) and `reason_code`; identical retries return their original decision.
+Each `POST /api/v1/sync/batch` record contains `scan_id`, `ticket_id`, `gate_id`, `scanned_at`, `is_override`, optional `event_configuration_version`, `code_step`, and `code`. Laravel recomputes the six-digit HMAC-SHA1 code against the encrypted ticket secret and checks that the reported step is within one 30-second step of the client-provided scan time. That timestamp is untrusted and cannot prove when an offline scan physically occurred. The local scanner accepts only the exact current step (`drift = 0`). The one-time code is never written to scan logs. Requests with a true `is_override` are rejected because manual overrides are not implemented. Responses contain `acknowledged_scan_ids` and one `outcomes` entry per scan with `decision` (`accepted` or `rejected`) and `reason_code`; identical retries return their original decision.
 
 The client encrypts queued records in SQLite, sends at most 50 per request, and erases each local code proof after the server acknowledges it. A valid offline scan remains provisional until this response arrives. Reconciliation rejects scans for cancelled/postponed events and can accept scans uploaded after an event is completed only when the device-reported scan time falls within the event schedule.
 

@@ -16,6 +16,7 @@ export interface SecurityStaff {
   id: number;
   name: string;
   email: string;
+  is_active: boolean;
 }
 
 export interface GateMetric {

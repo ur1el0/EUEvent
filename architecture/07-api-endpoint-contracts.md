@@ -1,5 +1,7 @@
 # 07 - REST API Endpoint Contracts
 
+> **Status:** Historical design reference. Some behavior below is planned or superseded. For current behavior, see [the current architecture](../docs/architecture.md), [API guide](../docs/api.md), and [security notes](../.agents/SECURITY.md); source code and tests are authoritative.
+
 ## 1. Authentication Endpoints
 
 ### `POST /api/v1/auth/login`

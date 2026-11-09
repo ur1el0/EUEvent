@@ -2,21 +2,30 @@
 trigger: always_on
 ---
 
-# Rule 04: Testing & Quality Assurance Standards
+# Rule 04: Testing & Quality Assurance
 
-These standards enforce the Test-Driven Development (TDD) protocol across the platform.
+Add automated tests for new API behavior, business rules, and critical mobile logic. SQLite tests do not prove PostgreSQL locking behavior; use a real PostgreSQL integration test for that claim.
 
-### 1. Laravel Backend Testing (Pest / PHPUnit)
-* **Rule:** Every new endpoint, service, or migration must have accompanying automated tests.
-* **Coverage Requirements:**
-  1. **Seed & Issuance:** Test that ticket issuance generates encrypted base32 seeds and valid user associations.
-  2. **Idempotency:** Submit the same sync payload with identical `scan_id` twice. Test that second request returns 200 OK without adding records or creating audit logs.
-  3. **Split-Brain Collision:** Submit two sync payloads with distinct `scan_id` values for the same `ticket_id`. Test that the second payload generates an audit record with `anomaly_type = 'SPLIT_BRAIN_COLLISION'`.
-  4. **Pessimistic Concurrency:** Test concurrent sync batch processing within database transactions.
+## Laravel backend
 
-### 2. Mobile Client Testing (Jest)
-* **Rule:** Mobile business logic controllers must have unit tests independent of native UI rendering.
-* **Coverage Requirements:**
-  1. **TOTP Engine:** Verify RFC 6238 token generation across current window, boundary transitions (+30s), and tolerance window ($w = 1$).
-  2. **SQLite Queue:** Verify enqueueing, pending status retrieval, marking synced, and retry logic.
-  3. **Marshal PIN:** Verify valid PIN allows override status (`is_override = 1`) and invalid PIN blocks admission.
+- Use the repository's PHPUnit feature tests with Laravel's test helpers.
+- Cover role authorization, validation, state changes, retry/idempotency, revocation, and audit records for new endpoints and services.
+- For offline reconciliation, test same-ID retries separately from distinct-ID duplicate claims. The latter should create a collision decision while preserving the records.
+- Run focused tests with `php artisan test --compact tests/Feature/RelevantTest.php` from `backend/`.
+- Run PHP formatting with `vendor/bin/pint --dirty --format agent` after backend edits.
+- Use PostgreSQL multi-connection tests to evaluate lock ordering, contention, and transaction-pooler behavior. In-memory SQLite is not a substitute.
+
+## Mobile scanner
+
+- Keep core QR validation independently testable from camera/native UI.
+- Current logic tests use Node's built-in test runner and TypeScript transpilation, not Jest:
+  `node --test tests/ticketValidation.test.mjs` from `security-scanner/`.
+- Cover malformed payloads, exact current-step validation, gate/event/ticket state, a screenshot replay within the same step, expiration at the next step, and repeated manifest lookup.
+- Test queue persistence and acknowledgement/retry behavior separately from native UI when adding coverage.
+- Before delivery, run `npx expo lint` and `npx tsc --noEmit` from `security-scanner/`.
+
+## Web app and device validation
+
+- Use the existing package scripts and build checks for admin-web changes.
+- Test login, account recovery, event setup, and staff status changes against a local API; do not assume browser mocks prove server behavior.
+- Verify camera, secure storage, app backgrounding, and offline restart on physical iOS/Android devices before describing a live demonstration as validated.

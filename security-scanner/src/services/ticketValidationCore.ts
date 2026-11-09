@@ -18,6 +18,8 @@ export type TicketQrCheck =
 
 type CodeGenerator = (secret: string, timeMs: number) => Promise<{ code: string }>;
 
+const ticketIndexes = new WeakMap<GateManifest['tickets'], ReadonlyMap<number, GateManifestTicket>>();
+
 export async function validateTicketQrCore(
   payload: string,
   manifest: GateManifest,
@@ -37,7 +39,13 @@ export async function validateTicketQrCore(
     return { valid: false, reason: 'invalid_format' };
   }
 
-  const ticket = manifest.tickets.find((entry) => entry.ticket_id === ticketId);
+  let ticketIndex = ticketIndexes.get(manifest.tickets);
+  if (!ticketIndex) {
+    ticketIndex = new Map(manifest.tickets.map((entry) => [entry.ticket_id, entry]));
+    ticketIndexes.set(manifest.tickets, ticketIndex);
+  }
+
+  const ticket = ticketIndex.get(ticketId);
   if (!ticket) {
     return { valid: false, reason: 'unknown_ticket' };
   }

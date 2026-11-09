@@ -18,7 +18,7 @@ These standards govern architectural separation between the authoritative Larave
 
 ### 3. Server Authoritative Role
 * **Rule:** The central Laravel server is the sole authoritative arbiter of state.
-* **Practice:** Client device clocks are treated as unverified. In any reconciliation conflict or race condition, `server_received_at` is the authoritative tie-breaker.
+* **Practice:** Client device clocks are unverified. The first server transaction to lock and commit an issued ticket is retained during reconciliation; a later distinct scan ID is audited as a collision. `server_received_at` records arrival time and does not prove physical order while devices are offline.
 
 ### 4. No God Files
 * **Rule:** Files must not exceed 250 lines.

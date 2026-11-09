@@ -20,7 +20,9 @@ These standards govern the two mobile end-user applications: the Student ticket 
   * Extract queue sync into `useSyncQueue`.
 
 ### 3. Scanner HUD & Feedback
-* **Rule:** Scanner UI must provide unambiguous, instant visual feedback upon code capture.
+* **Rule:** Scanner UI must provide unambiguous, immediate feedback after code capture.
 * **Practice:**
-  * Display high-contrast color badges: Green for Valid, Red for Invalid/Expired, Yellow for Wrong Gate.
-  * Provide an accessible Marshal Override PIN modal for supervisor overrides.
+  * Display text and high-contrast status treatments for accepted locally, invalid, expired, wrong gate, already claimed, and event inactive. Do not use color alone.
+  * Make it clear that offline acceptance is provisional until server sync.
+  * Manual admission overrides are not implemented; direct exceptions to the event lead's physical procedure.
+  * Account deactivation and manifest refresh cannot reach a disconnected phone. State this limitation to administrators and gate operators.

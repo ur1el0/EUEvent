@@ -625,9 +625,12 @@ export function AdminEventManagement({ token }: AdminEventManagementProps) {
                                     return (
                                       <label className="staff-checkbox" key={person.id}>
                                         <input type="checkbox" checked={draft.staffIds.includes(person.id)}
-                                          disabled={isSelectedEventFrozen || (selectedEvent.status !== 'draft' && isAlreadyAssigned)}
+                                          disabled={isSelectedEventFrozen || (!person.is_active && !isAlreadyAssigned)
+                                            || (selectedEvent.status !== 'draft' && isAlreadyAssigned)}
                                           onChange={(event) => toggleStaff(venueGate.id, person.id, event.target.checked)} />
-                                        <span><strong>{person.name}</strong><small>{person.email}</small></span>
+                                        <span><strong>{person.name}</strong><small>{person.email}</small>
+                                          {!person.is_active && <small className="staff-inactive-note">Inactive account</small>}
+                                        </span>
                                         {isAlreadyAssigned && selectedEvent.status !== 'draft' && <small className="staff-locked-tag">Already assigned</small>}
                                       </label>
                                     );

@@ -1,5 +1,7 @@
 # 04 - Mobile Scanner Replica Architecture (React Native Expo)
 
+> **Status:** Historical design reference. Some behavior below is planned or superseded. For current behavior, see [the current architecture](../docs/architecture.md), [API guide](../docs/api.md), and [security notes](../.agents/SECURITY.md); source code and tests are authoritative.
+
 ## 1. Overview
 Security Staff use the Mobile Scanner application at physical venue entrances (e.g. Gate 1, Gate 2, Gymnasium) to validate student tickets and manage physical access. It operates as an autonomous Client Replica MVC: it verifies dynamic student TOTP QR tokens completely offline against a pre-loaded SQLite manifest and queues scans in an offline buffer for opportunistic background synchronization. The authenticated role is `security_staff`; marshal override is an authorized staff capability, not a separate role.
 

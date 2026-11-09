@@ -1,5 +1,7 @@
 # 11 - Testing & Quality Assurance Verification Strategy
 
+> **Status:** Historical design reference. Some framework and behavior references below are obsolete. Follow [current testing rules](../.agents/rules/04-testing.md) and verify behavior against source code/tests.
+
 ## 1. Overview
 The testing framework guarantees that cryptographic invariants, offline data persistence, and concurrent database synchronization remain regression-free. Testing is executed using a Test-Driven Development (TDD) protocol across both the Laravel backend (Pest / PHPUnit) and React Native mobile clients (Jest).
 

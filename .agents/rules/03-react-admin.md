@@ -12,11 +12,12 @@ These standards govern the desktop dashboard used by the `administrator` role fo
 
 ### 2. Component Modularity & Clean UI
 * **Rule:** Parent view components must remain focused on layout and composition.
-* **Practice:** Extract metrics cards, alert feeds, and override logs into dedicated modular sub-components within `components/metrics/`, `components/alerts/`, and `components/audit/`.
+* **Practice:** Extract metrics cards, alert feeds, and audit logs into dedicated modular sub-components within `components/metrics/`, `components/alerts/`, and `components/audit/`.
 
 ### 3. Styling & Accessibility
 * **Rule:** Fully responsive layout with high-contrast accessibility badges for gate statuses.
 * **Practice:** Use Tailwind CSS utility classes. Explicitly color-code anomalies:
-  * Green: Valid admission.
-  * Amber: Marshal Override PIN bypass.
-  * Red: Split-Brain Collision anomaly.
+* Green: Locally accepted; label as provisional when offline.
+* Amber: Stale manifest, pending sync, or needs operator attention.
+* Red: Rejected scan or split-brain collision.
+* Show text labels and do not use color as the only status signal. There is no marshal override feature.

@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\AdminStudentController;
 use App\Http\Controllers\Api\V1\AssignedGatesController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\GateManifestController;
+use App\Http\Controllers\Api\V1\MobilePasswordResetController;
 use App\Http\Controllers\Api\V1\StudentTicketController;
 use App\Http\Controllers\Api\V1\SyncBatchController;
 use Illuminate\Support\Facades\Route;
@@ -18,6 +19,10 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->group(function (): void {
     Route::post('/auth/login', [AuthController::class, 'login'])
         ->middleware('throttle:6,1');
+    Route::post('/auth/password/email', [MobilePasswordResetController::class, 'sendLink'])
+        ->middleware('throttle:5,1');
+    Route::post('/auth/password/reset', [MobilePasswordResetController::class, 'reset'])
+        ->middleware('throttle:10,1');
 
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/auth/me', [AuthController::class, 'me']);
@@ -44,6 +49,8 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/security-staff', [AdminSecurityStaffController::class, 'index']);
         Route::post('/security-staff', [AdminSecurityStaffController::class, 'store'])
             ->middleware('throttle:10,1');
+        Route::patch('/security-staff/{staff}/status', [AdminSecurityStaffController::class, 'updateStatus'])
+            ->whereNumber('staff');
         Route::get('/event-options', AdminEventOptionsController::class);
         Route::get('/events', [AdminEventController::class, 'index']);
         Route::post('/events', [AdminEventController::class, 'store']);

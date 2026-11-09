@@ -1,5 +1,7 @@
 # 03 - Web Admin Dashboard Architecture (React + TypeScript)
 
+> **Status:** Historical design reference. Some behavior below is planned or superseded. For current behavior, see [the current architecture](../docs/architecture.md), [API guide](../docs/api.md), and [security notes](../.agents/SECURITY.md); source code and tests are authoritative.
+
 ## 1. Overview
 The desktop Administrator Web Dashboard lets administrators set up events, manage gate assignments, and monitor system activity. It visualizes admission throughput, gate health, offline sync queues, split-brain collisions, and marshal overrides. Security Staff use the separate offline mobile scanner app and do not use this dashboard as an end-user surface.
 

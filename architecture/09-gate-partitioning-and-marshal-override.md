@@ -1,5 +1,7 @@
 # 09 - Gate Partitioning & Marshal Override Architecture
 
+> **Status:** Historical design reference. The PIN override described here is superseded and is not implemented. For current behavior, see [the current architecture](../docs/architecture.md), [API guide](../docs/api.md), and [manual exception decision](decisions/013-manual-exception-procedure-without-pin-override.md).
+
 ## 1. Overview
 In a multi-gate offline university environment, attendees attempting to enter through unassigned gates or physical crowd bottlenecks present severe operational risks. This document specifies the gate segregation logic, cross-gate rejection rules, and the Marshal Override PIN fail-safe.
 

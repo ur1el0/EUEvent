@@ -1,144 +1,71 @@
-# MSEUF Offline Ticketing - System Architecture
+# EUEvent System Architecture
 
-## 1. High-Level Architecture: Distributed MVC
+## 1. System components
 
-The MSEUF Events Offline Ticketing System operates as a **Distributed Model-View-Controller (MVC)** architecture. Instead of relying on a monolithic MVC or a constant live WebSocket connection, responsibilities are partitioned between an Authoritative Server MVC and an Offline Client Replica MVC.
-
-```
-┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│                           AUTHORITATIVE SERVER MVC (Laravel)                            │
-│  [Model: Eloquent + PostgreSQL]  <-->  [Controller: REST API]  <-->  [View: JSON / React] │
-│   - Pessimistic Locking (5432)          - Sanctum Auth                 - Live Metrics   │
-│   - Cryptographic Seed Issuance         - Sync Reconciliation          - HTTP Polling   │
-│   - Authoritative Tie-Breakers          - Audit Logging                                 │
-└────────────────────────────────────────────┬────────────────────────────────────────────┘
-                                             │ Opportunistic Sync / Periodic Heartbeat
-                                             ▼
-┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│                            CLIENT REPLICA MVC (React Native)                            │
-│  [Model: expo-sqlite]            <-->  [Controller: TOTP / Sync] <--> [View: Vector QR / UI]│
-│   - local_manifest                      - otpauth Engine (RFC 6238)    - react-native-   │
-│   - pending_sync_queue (UUID v4)        - Marshal Override Logic         qrcode-svg     │
-│   - expo-secure-store (Seeds)           - Scanner Clock Trust Anchor   - Scanner HUD    │
-└─────────────────────────────────────────────────────────────────────────────────────────┘
+```text
+Administrator web app ──┐
+Student mobile app ──────┼── Laravel versioned API ── PostgreSQL
+Security scanner app ───┘          │
+                                    └── Mail transport (password recovery)
 ```
 
----
+The repository currently has three client experiences: a React/TypeScript desktop dashboard, a student ticket experience, and a security scanner built with Expo/React Native. Laravel owns durable accounts, events, gates, ticket state, scan reconciliation, and audit/activity records. The mobile clients can hold encrypted local data and work from a cached scanner manifest during a network outage.
 
-## 2. Architectural Layers & Responsibilities
+## 2. Backend (Laravel)
 
-### 2.1 Authoritative Server MVC (Laravel Backend)
-* **Model Layer:**
-  * Eloquent Models: `User`, `Ticket`, `ScanLog`, `AuditLog`.
-  * Database: PostgreSQL hosted on Supabase.
-  * Connection Pooler: Configured via the Supabase Session Pooler on **Port 5432** (not Transaction Pooler 6543) to support PostgreSQL row-level pessimistic locking (`SELECT ... FOR UPDATE`).
-  * Cryptographic Security: TOTP seeds encrypted at rest using Laravel's AES-256-CBC cipher (`Crypt::encryptString`).
-* **Controller Layer:**
-  * Thin REST Controllers: `TicketSyncController`, `TicketIssuanceController`, `AuthController`, `AdminMetricsController`.
-  * Controllers strictly validate incoming requests via dedicated FormRequests and delegate business logic to Domain Services (`SyncReconciliationService`, `TicketVerificationService`).
-* **View Layer:**
-  * API Layer: Standardized Eloquent API Resources (`TicketResource`, `ScanLogResource`, `AuditLogResource`).
-  * Administrator Web Dashboard: Desktop React SPA with TypeScript and Tailwind CSS for event setup, gate assignment management, and system/audit log monitoring. Live metrics use deterministic HTTP polling (5s–10s cadence).
-* **End-User Roles:** Exactly three roles are supported: `student` (student mobile app), `security_staff` (offline scanner mobile app), and `administrator` (desktop web dashboard). Gate marshal override is an authorized Security Staff duty, not a separate role.
+- **HTTP layer:** Versioned API routes, authentication, role middleware, FormRequests, and API Resources.
+- **Models and database:** Eloquent models backed by PostgreSQL. Migrations define users, venues/events/gates, tickets, scan logs, and audit/activity logs.
+- **Services:** Ticket issuance and revocation, event configuration changes, staff gate assignment, password recovery, and scan reconciliation live in focused services.
+- **Authentication:** Sanctum bearer tokens are issued to mobile and admin clients. Roles are `student`, `security_staff`, and `administrator`. Staff deactivation revokes API tokens; password reset also revokes existing tokens.
+- **Reconciliation:** A batch is processed in a transaction. Event/gate/assignment and ticket rows are locked in a stable order. A unique scan ID makes retry of the same queued scan idempotent. Competing scan IDs for one ticket are recorded as a collision.
+- **Email:** The password recovery endpoint sends the token through Laravel notifications and the configured mail transport. Development's log/array mailers do not deliver to a real inbox.
 
-### 2.2 Client Replica MVC (React Native Expo Mobile Client)
-* **Model Layer:**
-  * SQLite Engine: `expo-sqlite` maintaining `local_manifest` (pre-event cached valid tickets) and `pending_sync_queue` (offline scan buffer).
-  * Keystore: `expo-secure-store` storing student cryptographic seeds in hardware-backed encrypted storage.
-* **Controller Layer:**
-  * `totpController` / `useTotpTicket`: RFC 6238 TOTP computation using `otpauth` on a 30-second rotating window.
-  * `scannerController` / `useTicketScanner`: Validates dynamic attendee QR tokens against `local_manifest` using the scanner's clock as the sole cryptographic trust anchor.
-  * `syncController` / `useSyncQueue`: Opportunistic heartbeat that checks network connectivity and transmits un-synced batches in small compressed chunks.
-  * `marshalOverrideController`: Handles PIN-authenticated supervisor override during crowd surges or gate reassignments.
-* **View Layer:**
-  * Student View: Clean SVG QR renderer (`react-native-qrcode-svg`) with dynamic 30-second expiration progress indicator.
-  * Scanner View: Camera viewfinder HUD, real-time ticket admission status badges (Valid, Invalid, Expired, Wrong Gate, Override), and Marshal PIN prompt modal.
+## 3. Administrator web app
 
----
+The dashboard is a React SPA using TypeScript and a typed API client. It manages students, security staff, events, gates, ticket issuance/revocation, operational metrics, and logs. It should communicate when an account is inactive and preserve event assignments for reference; only active staff should be newly assignable.
 
-## 3. Database Schemas
+## 4. Mobile clients
 
-### 3.1 PostgreSQL Authoritative Server Schema
-```sql
-CREATE TABLE users (
-    id BIGSERIAL PRIMARY KEY,
-    student_number VARCHAR(32) UNIQUE,
-    name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL,
-    role VARCHAR(32) NOT NULL DEFAULT 'student' CHECK (role IN ('student', 'security_staff', 'administrator')),
-    CHECK ((role = 'student' AND student_number IS NOT NULL) OR (role IN ('security_staff', 'administrator') AND student_number IS NULL)),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+### Student ticket experience
 
-CREATE TABLE tickets (
-    id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    gate_id INTEGER NOT NULL,
-    totp_secret TEXT NOT NULL,
-    status VARCHAR(32) NOT NULL DEFAULT 'issued',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+- Authenticates with the Laravel API and retrieves only the signed-in student's tickets.
+- Stores ticket secrets in secure device storage and creates a QR payload locally for the current 30-second step.
+- Screenshots are replayable until that step expires; a rotating code does not prove that the code is being displayed live.
 
-CREATE TABLE scan_logs (
-    id BIGSERIAL PRIMARY KEY,
-    scan_id UUID UNIQUE NOT NULL,
-    ticket_id BIGINT NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
-    gate_id INTEGER NOT NULL,
-    device_id VARCHAR(64) NOT NULL,
-    device_scanned_at TIMESTAMP WITH TIME ZONE NOT NULL,
-    server_received_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
-);
+### Security scanner
 
-CREATE TABLE audit_logs (
-    id BIGSERIAL PRIMARY KEY,
-    ticket_id BIGINT NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
-    gate_id INTEGER NOT NULL,
-    device_id VARCHAR(64) NOT NULL,
-    anomaly_type VARCHAR(64) NOT NULL, -- 'SPLIT_BRAIN_COLLISION', 'OVERRIDE', 'GATE_MISMATCH'
-    colliding_scan_id UUID,
-    metadata JSONB,
-    server_received_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
-);
+- Signs in as security staff and downloads manifests only for assigned gates.
+- Stores the encrypted gate manifest and pending scan queue on device. The app reports a local acceptance as provisional until synchronization is acknowledged by the server.
+- Checks QR shape, ticket membership, gate, event state, local claim state, current step, and code. `ticketValidationCore.ts` builds an in-memory `Map` once per immutable manifest ticket array so repeated scans avoid linear ticket-list search.
+- Queues each physical scan with a UUID `scan_id`; retry uses that same ID. Successful server acknowledgements update the local queue and claim state.
+- Has no PIN/marshal override. API requests attempting an override are rejected.
 
-CREATE INDEX idx_tickets_user_id ON tickets(user_id);
-CREATE INDEX idx_tickets_gate_id ON tickets(gate_id);
-CREATE INDEX idx_scan_logs_ticket_id ON scan_logs(ticket_id);
-CREATE INDEX idx_scan_logs_scan_id ON scan_logs(scan_id);
-CREATE INDEX idx_audit_logs_ticket_id ON audit_logs(ticket_id);
-```
+## 5. Offline workflow and consistency boundary
 
-### 3.2 Mobile SQLite Client Replica Schema (`expo-sqlite`)
-```sql
-CREATE TABLE IF NOT EXISTS local_manifest (
-    ticket_id INTEGER PRIMARY KEY,
-    student_number TEXT NOT NULL,
-    totp_secret TEXT NOT NULL,
-    gate_id INTEGER NOT NULL,
-    status TEXT NOT NULL DEFAULT 'unclaimed'
-);
+1. Admins configure the event, issue tickets, assign gates/staff, and activate the event while online.
+2. Staff sign in and download each assigned gate manifest before opening the gate.
+3. Local scanning can proceed without an Internet connection using that saved snapshot.
+4. The scanner uploads pending scans when it can reach the event server. Retried scan IDs receive the original server result.
+5. The server locks each ticket while reconciling competing scan IDs. One claim is recorded; later distinct claims are preserved as collision/audit data for an operator to review.
 
-CREATE TABLE IF NOT EXISTS pending_sync_queue (
-    scan_id TEXT PRIMARY KEY,
-    ticket_id INTEGER NOT NULL,
-    gate_id INTEGER NOT NULL,
-    device_id TEXT NOT NULL,
-    scanned_at INTEGER NOT NULL,
-    is_override BOOLEAN DEFAULT 0,
-    synced BOOLEAN DEFAULT 0
-);
+This consistency boundary does not coordinate scanners that are offline at the same time. Each device can accept a ticket or screenshot from its own stale copy. Ticket/event updates and staff deactivation also cannot reach a disconnected device. Operators must use a physical exception procedure and resolve offline conflicts after sync.
 
-CREATE INDEX IF NOT EXISTS idx_manifest_student ON local_manifest(student_number);
-CREATE INDEX IF NOT EXISTS idx_pending_synced ON pending_sync_queue(synced);
-```
+## 6. Scalability considerations
 
----
+- Local manifest lookup is now indexed in memory; measure the whole scan path on supported phones with realistic manifest sizes before setting a latency limit.
+- The server locks the event rows as well as ticket rows. This provides conservative serialization for event mutations and scan batches, but may constrain write throughput for many scanners on one event. Benchmark on PostgreSQL with concurrent devices before optimizing lock scope.
+- Do not claim global exactly-once physical admission: the system gives idempotent retry for one scan ID and detects multiple scan IDs after reconciliation.
+- Record benchmarks for manifest size, local lookup p50/p95, queue volume, sync throughput, database lock wait, and collision rates. Use these measurements to set a supported event size.
 
-## 4. Concurrency, Synchronization & Tie-Breaking
+## 7. Core domain records
 
-1. **Idempotency Guarantee:** Mobile scanners mint a UUID v4 `scan_id` at the exact moment of optical capture. Network retries due to dropped TCP connections or HTTP timeouts are recognized idempotently by the server through the `UNIQUE (scan_id)` constraint without recording false split-brain alerts.
-2. **Pessimistic Concurrency:** When processing an incoming sync chunk, the server wraps updates inside database transactions using `Ticket::where('id', $ticketId)->lockForUpdate()->first()`.
-3. **Split-Brain Anomaly Handling:** If distinct `scan_id` values arrive for the same `ticket_id` from different physical gates or devices, the authoritative server marks both scans in `audit_logs` as `SPLIT_BRAIN_COLLISION` and keeps forensic logs.
-4. **Authoritative Timestamp Tie-Breaker:** Client device clocks are treated as unverified. In any reconciliation conflict, the server's `server_received_at` timestamp is the sole authoritative tie-breaker.
+The exact schema lives in Laravel migrations. The primary relationships are:
+
+- `User` owns student tickets and security staff assignments; `role` and `is_active` govern account access.
+- `Event` belongs to a `Venue`; `EventGate` connects an event to a venue gate.
+- `Ticket` belongs to a student and event gate and carries its encrypted TOTP secret and current status.
+- `ScanLog` stores the scan ID, ticket/gate/staff/device, client-reported scan time, server-received time, decision, and reason.
+- `AuditLog` stores security anomalies such as gate mismatch, outdated manifest, and split-brain collision.
+- `AdminActivityLog` records administrator actions such as account creation, staff activation/deactivation, and event changes.
+
+Use migrations and model relationships as the source of truth; examples in older planning notes may not match the current schema.
