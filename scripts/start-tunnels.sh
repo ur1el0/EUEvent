@@ -2,7 +2,7 @@
 # Opens EUEvent to phones on any network:
 #   - Laravel API      -> Cloudflare quick tunnel (https://<random>.trycloudflare.com)
 #   - Admin dashboard  -> Cloudflare quick tunnel (only if Vite is already running)
-#   - Expo app         -> Expo's own tunnel, preconfigured with the API tunnel URL
+#   - Expo app         -> Expo CLI's ngrok tunnel (no Expo account needed), preconfigured with the API URL
 #
 # Start the API (and optionally `npm run dev` in admin-web) first, then run:
 #   bash scripts/start-tunnels.sh            # tunnels + Expo app
@@ -104,7 +104,7 @@ echo
 
 if [[ "$START_EXPO" == "1" ]]; then
   cd "$ROOT_DIR/security-scanner"
-  EXPO_PUBLIC_API_BASE_URL="$API_BASE_URL" npx expo start --tunnel --go
+  EXPO_PUBLIC_API_BASE_URL="$API_BASE_URL" npx expo start --tunnel ngrok --go
 else
   echo "Tunnels are open. Press Ctrl+C to close them."
   wait
