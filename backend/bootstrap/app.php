@@ -14,6 +14,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Tunnels (cloudflared) and local web servers forward requests from this machine.
+        // Trusting only loopback lets per-IP rate limits see each phone's real address,
+        // while remote clients still cannot spoof X-Forwarded-For.
+        $middleware->trustProxies(at: ['127.0.0.1', '::1']);
+
         $middleware->alias([
             'role' => RequireRole::class,
         ]);
