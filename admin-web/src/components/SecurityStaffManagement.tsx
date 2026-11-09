@@ -19,6 +19,7 @@ export function SecurityStaffManagement({ token }: SecurityStaffManagementProps)
   const [staff, setStaff] = useState<SecurityStaff[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [updatingStaffId, setUpdatingStaffId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [name, setName] = useState('');
@@ -93,6 +94,38 @@ export function SecurityStaffManagement({ token }: SecurityStaffManagementProps)
     }
   }
 
+  async function toggleStaffStatus(person: SecurityStaff): Promise<void> {
+    const nextActiveState = !person.is_active;
+    const action = nextActiveState ? 'reactivate' : 'deactivate';
+    const offlineWarning = nextActiveState
+      ? ''
+      : '\n\nA disconnected scanner may keep using its cached gate manifest until it reconnects. Secure any lost phone and pause its gate until it can be reached.';
+
+    if (!window.confirm(`Are you sure you want to ${action} ${person.name}?${offlineWarning}`)) {
+      return;
+    }
+
+    setError(null);
+    setNotice(null);
+    setUpdatingStaffId(person.id);
+
+    try {
+      const result = await apiRequest<StaffCreateResponse>(`/admin/security-staff/${person.id}/status`, {
+        method: 'PATCH',
+        token,
+        body: { is_active: nextActiveState },
+      });
+      setStaff((current) => current.map((entry) => entry.id === result.staff.id ? result.staff : entry));
+      setNotice(nextActiveState
+        ? `${person.name} can sign in to the scanner again.`
+        : `${person.name} is deactivated. Online access tokens were revoked.`);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : `Could not ${action} this staff account.`);
+    } finally {
+      setUpdatingStaffId(null);
+    }
+  }
+
   return (
     <section className="staff-view" aria-labelledby="staff-page-title">
       <header className="dashboard-header staff-page-header">
@@ -151,7 +184,18 @@ export function SecurityStaffManagement({ token }: SecurityStaffManagementProps)
                 <li className="staff-list-item" key={person.id}>
                   <span className="staff-avatar">{person.name.trim().slice(0, 1).toUpperCase()}</span>
                   <span className="staff-person-copy"><strong>{person.name}</strong><span>{person.email}</span></span>
-                  <span className="staff-role-badge"><ShieldCheck size={14} /> Staff</span>
+                  <span className={person.is_active ? 'staff-role-badge' : 'staff-role-badge staff-role-badge--inactive'}>
+                    <ShieldCheck size={14} /> {person.is_active ? 'Active staff' : 'Inactive'}
+                  </span>
+                  <button
+                    className="staff-status-button"
+                    type="button"
+                    disabled={updatingStaffId === person.id}
+                    onClick={() => void toggleStaffStatus(person)}
+                    aria-label={`${person.is_active ? 'Deactivate' : 'Reactivate'} ${person.name}`}
+                  >
+                    {updatingStaffId === person.id ? 'Updating…' : person.is_active ? 'Deactivate' : 'Reactivate'}
+                  </button>
                 </li>
               ))}
             </ul>
