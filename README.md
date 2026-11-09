@@ -98,6 +98,7 @@ Build the dashboard from `admin-web/` with `npm run build`. Check the Expo app w
 ## More documentation
 
 - [Complete Fedora, Lerd, Supabase, admin-web, and Expo setup guide](docs/setup-guide.md)
+- [Sharing the API, dashboard, and app with phones on any network (tunnels)](docs/tunnel-guide.md)
 - [Presentation run of show, system walkthrough, roadmap, and speaker notes](docs/presentation/README.md)
 - [Backend API and demo setup](backend/README.md)
 - [Administrator dashboard](admin-web/README.md)
