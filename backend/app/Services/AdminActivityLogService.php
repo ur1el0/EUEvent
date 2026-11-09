@@ -66,6 +66,8 @@ class AdminActivityLogService
             ->whereIn('log.action', [
                 'student_account_created',
                 'security_staff_account_created',
+                'security_staff_activated',
+                'security_staff_deactivated',
             ])
             ->select([
                 'log.id',
