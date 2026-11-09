@@ -17,6 +17,10 @@ class RequireRole
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
+        if (! $user->is_active) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
         if (! in_array($user->role, $roles, true)) {
             return response()->json(['message' => 'Forbidden.'], 403);
         }

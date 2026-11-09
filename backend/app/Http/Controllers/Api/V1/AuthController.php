@@ -28,6 +28,7 @@ class AuthController extends Controller
         $user = User::query()
             ->where($column, $identifier)
             ->whereIn('role', $roles)
+            ->where('is_active', true)
             ->first();
 
         if (! $user || ! Hash::check($credentials['password'], $user->password)) {
@@ -49,7 +50,7 @@ class AuthController extends Controller
     {
         $user = $request->user();
 
-        if (! $user instanceof User) {
+        if (! $user instanceof User || ! $user->is_active) {
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
