@@ -1,47 +1,34 @@
-# MSEUF Offline Ticketing - Domain & Technical Glossary
+# EUEvent Domain Glossary
 
-This glossary defines the cryptographic, distributed systems, and architectural terminology used across the MSEUF Offline Ticketing project.
+### End-user roles
+The three roles are **Student** (presents a digital ticket on mobile), **Security Staff** (validates tickets at gates using the offline scanner), and **Administrator** (configures events, gates, and accounts on the desktop web dashboard).
 
-### End-User Roles
-The system has three end-user roles: **Student** (uses the student mobile app to present a rotating ticket), **Security Staff** (uses the offline scanner mobile app to validate tickets and manage entry), and **Administrator** (uses the desktop web dashboard to configure events and gates and monitor logs). A gate marshal is Security Staff authorized to perform an override, not a fourth role.
+### RFC 6238 / TOTP
+A time-based one-time password computed from a shared secret and a 30-second Unix-time step. EUEvent places the ticket ID, step number, and six-digit code in the QR payload: `EUEVENT1:{ticket_id}:{step}:{code}`.
 
----
+### Current-step validation
+The scanner currently accepts the exact current step only. Its allowed drift is zero steps. A screenshot may be accepted by a scanner that has not locally claimed the ticket; that same scanner rejects a repeat after the first claim, but another disconnected scanner cannot see the claim. The image becomes stale after its 30-second step and the system is not fully screenshot-proof.
 
-### Distributed MVC
-An architectural pattern partitioning Model-View-Controller responsibilities across decoupled computing nodes. The centralized Laravel server acts as the Authoritative MVC (state of record, seed issuance, tie-breaking), while the mobile scanner operates as an autonomous Client Replica MVC (`expo-sqlite` as Model, `otpauth` as Controller, camera HUD as View).
+### Gate manifest
+An encrypted, gate-scoped snapshot downloaded by an authenticated staff phone before the event. The scanner can validate tickets from this saved copy while disconnected. Later event or ticket changes do not reach the device until it reconnects and refreshes.
 
-### RFC 6238 (TOTP)
-Time-Based One-Time Password algorithm. An open standard that generates short-lived, pseudo-random tokens using HMAC-SHA1 over a secret key and the current epoch timestamp divided by a time-step (30 seconds).
+### Pending scan queue
+Encrypted local records of scans that have not yet been acknowledged by the server. Every record keeps one UUID `scan_id` across retries so the server can recognize the same retry.
 
-### Trust Anchor
-The single source of truth for time in the verification process. In this system, the scanner device's hardware clock serves as the cryptographic trust anchor. The student device's clock is completely untrusted; manipulating it only produces tokens for invalid time windows.
+### Provisional offline acceptance
+A ticket/code/gate match against one scanner's saved manifest. It is not a global reservation or server confirmation. Multiple disconnected scanners can accept the same ticket from separate stale copies.
 
-### Clock Drift Window ($w$)
-The allowable margin of error for time synchronization between student and scanner devices. A drift factor of $w = 1$ permits tokens generated in the previous, current, or next 30-second window ($\pm 30$ seconds), accommodating reasonable device clock variance while blocking stale tokens.
+### Split-brain collision
+Two distinct scan IDs claim the same ticket. The server preserves the records and flags the later processed claim as a collision during reconciliation. It cannot reverse a physical entry already made offline.
 
-### Idempotency Key (`scan_id`)
-A globally unique identifier (UUID v4) generated client-side by the mobile scanner at the exact instant of optical capture. Ensures that retried sync requests caused by dropped connections cannot generate duplicate admission entries or false collision flags.
+### Server receive time
+The server's `server_received_at` records when a scan record arrived. It cannot establish which device physically scanned first while the devices were disconnected. The uploaded `scanned_at` is client-provided, untrusted data, and current server checks use it for time-step/event-window validation.
 
-### Split-Brain Collision
-An anomaly where the same `ticket_id` is presented and claimed with two distinct `scan_id` values (e.g., at two different gates or scanners before either device has synced with the server). Both events are preserved in `audit_logs` for forensic review.
+### Staff deactivation
+An administrator can deactivate a security staff account. This blocks online sign-in/API access and deletes server-side Sanctum tokens. A disconnected phone cannot receive that change and may still have cached offline data until recovered or reconnected.
 
-### Pessimistic Locking (`SELECT ... FOR UPDATE`)
-A database concurrency control mechanism where a row is locked exclusively within an active transaction, forcing concurrent sync batches targeting the same ticket to queue sequentially and preventing double-spend race conditions.
+### Password reset token
+A one-time Laravel password-reset token delivered through the configured mail transport. It expires after 60 minutes; a successful reset changes the password and invalidates existing API sessions. Public request responses do not reveal whether an eligible account exists.
 
-### Supabase Session Pooler (Port 5432)
-PostgreSQL connection pooling mode that allocates a persistent backend session per client connection. Unlike Transaction Poolers (Port 6543) which break transaction-scoped state, the Session Pooler fully supports PostgreSQL row-level pessimistic locks and advisory locks.
-
-### Gate Partitioning
-The practice of pre-assigning tickets to specific venue physical entrances (`gate_id`). Scanners only validate attendees assigned to their gate, restricting double-spending across disparate physical access points during offline periods.
-
-### Marshal Override PIN
-A cryptographically verified PIN entered by an authorized event marshal on the scanner device to force-admit an attendee during emergency crowd surges, bottlenecks, or gate reassignments. Emits an `OVERRIDE` audit event.
-
-### Local Manifest (`local_manifest`)
-A local SQLite table on the mobile scanner pre-populated before the event. Contains the assigned ticket IDs, student numbers, encrypted TOTP secrets, and local admission status.
-
-### Pending Sync Queue (`pending_sync_queue`)
-An offline store-and-forward SQLite table holding scanned ticket records (`scan_id`, `ticket_id`, `gate_id`, `scanned_at`, `is_override`) until opportunistic network reachability allows batch uploading to the authoritative server.
-
-### Authoritative Server Tie-Breaker
-The architectural invariant that server receive time (`server_received_at`) is the sole decisive timestamp for transaction ordering. Client timestamps (`device_scanned_at`) are treated strictly as unverified telemetry.
+### Manual admission override
+Not implemented. Sync API requests that claim an override are rejected. Event operators need an external physical exception procedure.

@@ -63,7 +63,7 @@ This document contains standard commands, development workflows, and operational
 
 * **Start Expo Development Server:**
   ```bash
-  cd mobile
+  cd security-scanner
   npx expo start
   ```
 
@@ -76,21 +76,21 @@ This document contains standard commands, development workflows, and operational
   adb reverse tcp:8000 tcp:8000
 
   # Launch Expo app:
-  cd mobile
+  cd security-scanner
   npx expo run:android
   ```
 
-* **Run Mobile Unit Tests (Jest):**
+* **Run Scanner Logic Tests (Node test runner):**
   ```bash
-  cd mobile
+  cd security-scanner
   npm test
   ```
 
 * **TypeScript & Linter Validation:**
   ```bash
-  cd mobile
+  cd security-scanner
   npx tsc --noEmit
-  npm run lint
+  npx expo lint
   ```
 
 ---
@@ -98,7 +98,7 @@ This document contains standard commands, development workflows, and operational
 ## 2. Pre-Push Verification Checklist
 
 Always run the unified verification matrix before pushing a feature branch:
-1. **Backend Tests:** `php artisan test` (100% passing, testing ticket issuance, idempotency, and concurrency).
-2. **Frontend Build:** `cd web-admin && npm run build` (No TypeScript or bundling errors).
-3. **Mobile Tests & Types:** `cd mobile && npm test && npx tsc --noEmit` (Zero static analysis warnings).
+1. **Backend Tests:** `cd backend && php artisan test` (review and resolve all failures; SQLite is not PostgreSQL concurrency evidence).
+2. **Admin Build:** `cd admin-web && npm run build` (TypeScript and production bundle).
+3. **Mobile Tests & Types:** `cd security-scanner && npm test && npx tsc --noEmit && npx expo lint`.
 4. **Git Hygiene:** `git status` confirms `.env`, SQLite databases, and personal agent files remain untracked.

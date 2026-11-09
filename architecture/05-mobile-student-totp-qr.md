@@ -1,5 +1,7 @@
 # 05 - Mobile Student Ticket Wallet Architecture (React Native Expo)
 
+> **Status:** Historical design reference. Some behavior below is planned or superseded. For current behavior, see [the current architecture](../docs/architecture.md), [API guide](../docs/api.md), and [security notes](../.agents/SECURITY.md); source code and tests are authoritative.
+
 ## 1. Overview
 The Student Ticket Wallet application provides attendees with offline access to their cryptographic event passes. It dynamically generates a 6-digit TOTP token every 30 seconds entirely on-device and renders an SVG vector QR code that defeats static screenshot fraud.
 

@@ -1,7 +1,7 @@
 # ADR 008: Marshal Override PIN Flow for Venue Contingencies
 
 ## Status
-Accepted
+Superseded by [ADR 013](013-manual-exception-procedure-without-pin-override.md)
 
 ## Context
 Physical events at MSEUF stadiums or gymnasiums frequently experience physical bottlenecks, crowd surges, gate hardware failures, or gate reassignments. If ticket validation is completely immutable and non-overridable, gate marshals cannot admit valid attendees when an assigned gate is blocked, causing safety hazards and crowd discontent.

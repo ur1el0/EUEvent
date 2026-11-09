@@ -1,7 +1,7 @@
 # ADR 003: Scanner Hardware Clock as Sole Cryptographic Trust Anchor
 
 ## Status
-Accepted
+Superseded by [ADR 012](012-current-step-totp-and-replay-boundary.md)
 
 ## Context
 If ticket verification relies on the attendee device's clock, malicious attendees can tamper with their smartphone operating system time (e.g., rolling back the clock to re-generate an earlier token or pausing the clock to keep a captured screenshot valid).

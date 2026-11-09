@@ -1,5 +1,7 @@
 # 06 - Database Schemas: Authoritative PostgreSQL & Local SQLite
 
+> **Status:** Historical design reference. Some behavior below is planned or superseded. For current behavior, see [the current architecture](../docs/architecture.md), [API guide](../docs/api.md), and [security notes](../.agents/SECURITY.md); source code and tests are authoritative.
+
 ## 1. Authoritative Server Schema (PostgreSQL)
 
 ```sql

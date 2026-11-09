@@ -1,65 +1,42 @@
-# MSEUF Offline Ticketing - Engineering Phases & Milestones
+# EUEvent Engineering Phases
 
-This document outlines the sequential phases of development, tracking progress from foundational backend services to offline mobile deployment and defense preparation.
+This roadmap tracks the current MVP, not a production readiness certification. Items marked implemented describe repository code; they still need the runtime validation listed in Phase 4.
 
----
+## Phase 1 — Laravel foundation and roles
 
-## Phase 1: Authoritative Server MVC Foundation & Cryptography
-* [ ] Initialize Laravel REST API with PostgreSQL connection via Supabase Session Pooler (Port 5432).
-* [ ] Database migrations: `users`, `tickets`, `scan_logs`, `audit_logs` with all indexes and constraints.
-* [ ] User authentication and authorization with Laravel Sanctum for the `student`, `security_staff`, and `administrator` roles.
-* [ ] Cryptographic Seed Service: AES-256 base32 TOTP secret generation, encryption, and issuance.
-* [ ] Eloquent Models with relationships, scopes, and encrypted cast attributes.
-* [ ] Seeders for MSEUF sample events, gates (Gate 1, Gate 2, Gym), students, and tickets.
-* [ ] Automated backend unit tests (Pest / PHPUnit) for ticket issuance and encryption.
+**Implemented in the repository:** Laravel API, PostgreSQL schema/migrations, Sanctum authentication, three roles, role middleware, student/staff/admin endpoints, and activity/audit records.
 
----
+**Still to validate:** Apply all new migrations to the shared Supabase project and verify deployment configuration without exposing credentials.
 
-## Phase 2: Sync Ingestion, Concurrency & Reconciliation Engine
-* [ ] Idempotent `TicketSyncController` handling opportunistic batch payloads.
-* [ ] FormRequest validation for sync batches and client UUID v4 `scan_id`.
-* [ ] `SyncReconciliationService` implementing PostgreSQL row-level pessimistic locking (`lockForUpdate()`).
-* [ ] Deduplication logic: Recognize repeated `scan_id` without creating false collisions.
-* [ ] Forensic anomaly logger: Record `SPLIT_BRAIN_COLLISION`, `OVERRIDE`, and `GATE_MISMATCH` events in `audit_logs`.
-* [ ] Authoritative timestamp tie-breaker logic using `server_received_at`.
-* [ ] Integration tests simulating concurrent sync batches and split-brain conflicts.
+## Phase 2 — Ticket issuance and gate operations
 
----
+**Implemented in the repository:** Event/gate configuration, staff assignments, student ticket issuance and revocation, gate-scoped manifests, and administrator views for core workflows.
 
-## Phase 3: Administrator Web Dashboard (Risk-Free Delivery)
-* [ ] React + TypeScript SPA setup using Tailwind CSS.
-* [ ] Administrator workflows to set up events and manage gate assignments.
-* [ ] HTTP Polling service (5s–10s intervals) targeting `/api/v1/admin/metrics` (no WebSockets).
-* [ ] Gate Throughput & Status Cards (Admitted vs. Remaining per gate).
-* [ ] Anomaly & Collision Alert Feed with live forensic details.
-* [ ] Marshal Override Audit Log table with device and timestamp telemetry.
-* [ ] Ticket Search & Manual Invalidation view.
+**Still to validate:** Exercise event creation through ticket display and gate assignment on the actual presentation setup; verify staff assignment and ticket counts are correct.
 
----
+## Phase 3 — Offline scan and reconciliation
 
-## Phase 4: Mobile Scanner Replica MVC (React Native Expo)
-* [ ] Expo TypeScript initialization with `expo-sqlite` and `expo-camera`.
-* [ ] SQLite schema migrations: `local_manifest` and `pending_sync_queue`.
-* [ ] `ScannerController` / `useTicketScanner` hook validating attendee TOTP tokens against local manifest using the device clock as the trust anchor.
-* [ ] Marshal Override PIN flow modal for surge force-admission (`is_override = 1`).
-* [ ] Opportunistic reachability heartbeat: Detect connection and upload compressed batches (25–50 records) from `pending_sync_queue`.
-* [ ] Scanner HUD: Real-time visual feedback badges (Admitted, Invalid, Expired, Wrong Gate, Override).
+**Implemented in the repository:** Encrypted local gate manifests, current-step rotating QR validation, a persistent offline scan queue, same-ID retry behavior, server-side transactional reconciliation, and collision auditing.
 
----
+**Known limits:** A screenshot can be replayed during its current 30-second step. Disconnected scanners cannot coordinate single use or receive event/ticket/staff updates. Server reconciliation flags duplicates after reconnect; it cannot reverse physical entry.
 
-## Phase 5: Student Dynamic QR Client (React Native Expo)
-* [ ] Student ticket wallet view with secure login and manifest caching.
-* [ ] Cryptographic seed retrieval and persistence in `expo-secure-store`.
-* [ ] `TotpController` / `useTotpTicket` hook generating RFC 6238 6-digit tokens every 30 seconds using `otpauth`.
-* [ ] Dynamic vector QR rendering with `react-native-qrcode-svg`.
-* [ ] 30-second countdown indicator and automatic payload refresh.
-* [ ] Anti-screenshot visual watermark and brightness helper.
+**Still to validate:** Complete offline scan → app restart → reconnect → queue sync on physical devices. Verify PostgreSQL lock behavior and multiple-scanner contention.
 
----
+## Phase 4 — Client and account hardening
 
-## Phase 6: End-to-End Stress Simulation & Midterm Defense Preparation
-* [ ] Concurrent sync simulation: Simulate 3 scanners uploading overlapping batches simultaneously.
-* [ ] Offline-to-online transition test: Scan 100 tickets completely offline, then restore network.
-* [ ] Clock tampering resilience test: Demonstrate student phone time manipulation fails verification.
-* [ ] Exhaustive line-by-line masterclass walkthrough of all backend, mobile, and web modules.
-* [ ] Oral defense preparation covering Distributed MVC purity, cryptographic invariants, and database locks.
+**Implemented on the hardening branch:** Mobile password recovery for students and staff, administrator activation/deactivation of scanner staff, API token revocation, a cached per-manifest ticket lookup index, tests, and corrected security/operating documentation.
+
+**Still to validate:** Apply the staff migration in the target database; configure a real mail transport and receive a reset email; test account recovery and deactivation on the devices and dashboard used for the demonstration.
+
+## Phase 5 — Readiness checks before the 30–50% milestone review
+
+- [ ] Run the full backend test suite and client build/lint checks on the hardening branch.
+- [ ] Test mobile login, reset email, reset-token entry, ticket display, screen-reader labels, and bottom safe-area behavior on actual phones.
+- [ ] Test staff account activation/deactivation and gate assignment in the admin dashboard against the local API.
+- [ ] Run offline scanning on two devices, including same-step screenshot replay and duplicate presentation, then synchronize and review the collision.
+- [ ] Benchmark realistic manifest sizes and scan queues on supported phones and PostgreSQL; publish measured limits only after recording results.
+- [ ] Document the manual admission procedure for cancellation, reschedule, stale manifest, lost phone, low battery, and offline collision.
+
+## Beyond this MVP milestone
+
+Production deployment automation, backups/restore drills, measured load guarantees, stronger online/device revocation controls, robust multi-device offline coordination, and comprehensive accessibility/usability evaluation remain future work.

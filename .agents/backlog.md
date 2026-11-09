@@ -1,63 +1,35 @@
-# MSEUF Offline Ticketing - Master Task Backlog
+# EUEvent MVP Readiness Backlog
 
-This backlog enumerates granular engineering tasks across all development phases.
+The core MVP code is present. This is the remaining work to validate and harden the first demonstration milestone; checked items should be updated only after the corresponding evidence exists.
 
----
+## Account and administrator flows
 
-## 1. Backend API & Cryptography (Laravel)
-- [ ] Configure `config/database.php` for Supabase Session Pooler (port 5432) with persistent connections.
-- [ ] Create migration for `users` table with nullable unique `student_number` and the `student`, `security_staff`, and `administrator` role allowlist.
-- [ ] Implement role-specific authorization policies for student tickets, assigned scanner gates, and administrator workflows.
-- [ ] Create migration for `tickets` table with `totp_secret` (encrypted text), `gate_id`, `status`.
-- [ ] Create migration for `scan_logs` table with `scan_id` (UUID unique) and foreign key to `tickets`.
-- [ ] Create migration for `audit_logs` table with `anomaly_type`, `colliding_scan_id`, and `metadata` (JSONB).
-- [ ] Implement `TotpSeedGeneratorService` using RFC 6238 compatible base32 secret generation.
-- [ ] Implement `TicketIssuanceService` to associate students with events, assign gates, and encrypt seeds.
-- [ ] Build `ManifestDownloadController` to provide initial manifest partition to scanners.
-- [ ] Implement `TicketSyncController` with batch ingestion FormRequest validation.
-- [ ] Implement `SyncReconciliationService` with `SELECT ... FOR UPDATE` row locks on `tickets`.
-- [ ] Build idempotent deduplication logic for retried `scan_id` values.
-- [ ] Write Pest/PHPUnit tests for ticket issuance, valid TOTP verification, idempotent retries, and collision logging.
+- [ ] Apply and verify the staff `is_active` migration on the shared PostgreSQL project.
+- [ ] Configure and verify a real mail transport; check password reset delivery, expiry, single use, rate limiting, and session revocation.
+- [ ] Exercise administrator staff activation/deactivation and event gate assignment in the actual desktop dashboard.
+- [ ] Confirm offline account deactivation expectations with event operators and document device recovery steps.
 
----
+## Offline ticket admission
 
-## 2. Administrator Web Dashboard (React + TypeScript)
-- [ ] Set up React Vite application with Tailwind CSS and Lucide icons.
-- [ ] Build administrator workflows for event setup and gate assignment management.
-- [ ] Build `useAdminMetrics` hook using HTTP interval polling (5s frequency).
-- [ ] Implement Gate Throughput visual cards with progress bars (Admitted vs. Remaining).
-- [ ] Implement Live Anomaly & Collision Alert Feed displaying device IDs and colliding timestamps.
-- [ ] Implement Marshal Override Log table with forensic event inspector.
-- [ ] Implement Ticket Search & Revocation modal.
-- [ ] Write component tests verifying polling updates and alert rendering.
+- [ ] Test manifest download, app restart, offline ticket scan, queue persistence, reconnect, and server acknowledgement on real Android and iOS devices.
+- [ ] Test current-step QR acceptance, expiration at the next 30-second step, and screenshot replay during the active step.
+- [ ] Test duplicate presentation at two disconnected scanners and confirm both records reconcile with a collision for human review.
+- [ ] Test cancelled/rescheduled events and revoked tickets with stale manifests; make the physical stop/continue procedure clear to staff.
+- [ ] Test low battery, app background/foreground, camera permission loss, and local storage recovery.
+- [ ] Validate gate/staff assignments before venue doors open and make the stale-manifest warning visible in training material.
 
----
+## Reliability, performance, and security evidence
 
-## 3. Mobile Scanner App (React Native Expo)
-- [ ] Configure Expo project with TypeScript, `expo-sqlite`, and `expo-camera`.
-- [ ] Implement `databaseService.ts` to manage `local_manifest` and `pending_sync_queue`.
-- [ ] Build pre-event manifest synchronization flow to populate SQLite database.
-- [ ] Implement `useTicketScanner` hook validating QR payloads against SQLite manifest using `otpauth`.
-- [ ] Build Scanner HUD camera screen with real-time bounding box and status banner.
-- [ ] Implement Marshal Override PIN modal with supervisor authorization logic.
-- [ ] Implement `syncWorker.ts` with network reachability listener and chunked batch upload.
-- [ ] Write Jest tests for SQLite manifest lookups, sync queue transitions, and PIN validation.
+- [ ] Run all backend and mobile checks on the hardening branch and review failures before merging.
+- [ ] Verify server-side row locking with concurrent PostgreSQL connections using the actual Supabase connection mode.
+- [ ] Benchmark manifest sizes, local QR validation p50/p95, device memory, offline queue volume, sync throughput, and database lock waits.
+- [ ] Establish supported event/device limits from recorded measurements; do not publish unmeasured throughput or latency promises.
+- [ ] Review token expiry, reset rate limiting, admin authorization, audit log retention, and server secrets in the presentation deployment.
+- [ ] Run a focused accessibility/usability review on sign-in, QR brightness/readability, scan feedback, errors, admin forms, and small screens.
 
----
+## Presentation operations
 
-## 4. Student Dynamic Ticket App (React Native Expo)
-- [ ] Build Student Login and Event Ticket Wallet screen.
-- [ ] Implement `secureStorageService.ts` using `expo-secure-store` for seed persistence.
-- [ ] Implement `useTotpTicket` hook calculating 6-digit TOTP token every 30 seconds via `otpauth`.
-- [ ] Integrate `react-native-qrcode-svg` to dynamically render vector QR codes.
-- [ ] Implement 30-second circular countdown timer synchronized with TOTP time-step.
-- [ ] Add anti-screenshot watermark overlay with attendee metadata.
-- [ ] Write Jest tests for dynamic TOTP generation across step boundaries.
-
----
-
-## 5. Verification & Defense Readiness
-- [ ] Multi-scanner concurrency stress test script simulating simultaneous gate syncs.
-- [ ] Proof of clock tampering defense: Test student app with skewed system clock.
-- [ ] Verify Supabase PostgreSQL pessimistic locking behavior under high sync load.
-- [ ] Conduct comprehensive line-by-line code and logic walkthrough.
+- [ ] Use a standalone scanner build if the demo must continue when Metro is unavailable.
+- [ ] Prepare a local network/server fallback and confirm every phone downloads its assigned manifest beforehand.
+- [ ] Assign an event lead to handle manual exceptions; the application has no marshal PIN override.
+- [ ] After doors close, reconnect every scanner, sync pending records, and review collisions/anomalies before treating admission counts as final.

@@ -1,60 +1,33 @@
-# MSEUF Offline Ticketing - Cryptographic & Data Security Policy
+# EUEvent Security Notes
 
-This document defines the mandatory cryptographic standards, offline security baselines, and data integrity protocols enforced across the MSEUF Offline Ticketing system.
+This file describes protections that exist in the MVP and their limits. It is not a claim of production certification.
 
----
+## 1. Ticket secrets and rotating QR codes
 
-## 1. Cryptographic Invariants & Dynamic QR (RFC 6238)
+- Ticket secrets are encrypted in PostgreSQL with Laravel encryption. The authorized student-ticket and scanner-manifest APIs return the secret only to the intended account or assigned scanner; scanner manifests are encrypted in the mobile app's local storage.
+- The app generates a six-digit HMAC-SHA1 time-based code in a 30-second UTC epoch step. The QR payload is `EUEVENT1:{ticket_id}:{step}:{code}`.
+- The scanner accepts only the exact current 30-second step (`ALLOWED_CLOCK_DRIFT_STEPS = 0`). Keep student and scanner device clocks set automatically. There is no grace step for device clock skew.
+- A screenshot or photo copied in the current step can be accepted by a scanner whose local manifest has not already claimed that ticket. That scanner rejects another scan after its first local claim. A disconnected second scanner cannot see the claim and may also accept it until the step changes. This limits the replay interval; it does not eliminate screenshot fraud.
+- Server reconciliation verifies the code for the reported step. The uploaded device timestamp is untrusted and cannot prove when a physical scan occurred. The API also uses the reported time to check the TOTP-step relationship and event window, so it must not be described as merely informational.
 
-Static QR codes and screenshot sharing represent the primary vulnerability in traditional event ticketing. To eliminate this vector:
+## 2. Offline admission limits
 
-1. **RFC 6238 TOTP Algorithm:** Tickets use standard HMAC-based One-Time Passwords with a 30-second time-step ($T_0 = 0, T_X = 30$) and 6-digit output length.
-2. **Library Standardization:** Mobile clients must use the battle-tested `otpauth` package to prevent manual JavaScript HMAC rounding or arithmetic errors.
-3. **Seed Protection:**
-   - **Server:** TOTP base32 secret keys are encrypted in PostgreSQL using Laravel's AES-256-CBC envelope (`Crypt::encryptString($secret)`).
-   - **Student Mobile App:** Stored exclusively inside `expo-secure-store` (hardware-backed Keychain on iOS and KeyStore on Android).
-   - **Scanner Local Manifest:** Pre-loaded secrets in `local_manifest` are strictly accessible only within the sandboxed SQLite instance.
+- Offline checks use a saved gate-specific manifest. They cannot receive later event changes, ticket revocations, staff deactivation, or other scanners' scans until the device reconnects.
+- Two disconnected scanners can each accept the same unclaimed ticket from their local copies. The server serializes reconciliation with database locks, records the first processed claim, and marks a later distinct scan ID as a collision. It cannot undo a physical entry that already happened.
+- A queued scan retry keeps its original UUID `scan_id`. This makes retries of the same queue item idempotent. A different scan ID for the same ticket is a possible duplicate and is audited.
+- `is_override = true` is rejected by the API. No marshal PIN override is implemented. Exceptional entry must follow an event operator's documented manual procedure and be reviewed when connectivity returns.
+- If an event is cancelled, rescheduled, or materially changed while scanners are disconnected, stop using stale manifests where practicable. The event lead must decide physical admission until scanners can refresh and synchronize.
 
----
+## 3. Server-side reconciliation and authorization
 
-## 2. Scanner Hardware Clock as Trust Anchor
+- Sync batches run in database transactions and lock event, gate/assignment, and ticket rows in a consistent order. The first transaction to claim an issued ticket wins; later distinct claims become collision records. `server_received_at` records server ingestion time, it does not establish the true order of offline physical scans.
+- Student and security staff tokens are role-scoped. Administrators manage events and accounts through administrator-only endpoints.
+- Deactivating a security staff account revokes stored Sanctum tokens and blocks new logins and authenticated API access. A disconnected device may still use a cached manifest until the event operator retrieves it or connectivity returns.
+- Password-reset requests return the same public response for known and unknown eligible accounts. Laravel reset tokens are single-use and expire after 60 minutes. A successful reset revokes the user's API tokens. Mail delivery still depends on a working server mail transport.
+- Login and reset endpoints are rate-limited. Keep `APP_KEY`, database credentials, mail credentials, and any deployment secrets out of source control and client bundles.
 
-1. **Zero-Trust Client Time:** Student device clocks are completely untrusted. Any student adjusting system time on their phone will simply generate a TOTP token corresponding to an invalid time slot.
-2. **Trust Anchor:** The physical scanner device's clock serves as the sole cryptographic trust anchor. 
-3. **Allowable Drift:** Scanners evaluate tokens within a tolerance window of $w = 1$ step (current 30s window $\pm 30$ seconds) to absorb minor clock variances while strictly rejecting stale tokens.
+## 4. Database and deployment
 
----
-
-## 3. Idempotency & Replay Attack Defense
-
-1. **Client-Generated UUID v4:** Scanners generate an RFC 4122 UUID v4 `scan_id` at the instant of optical scan.
-2. **Database Constraint:** `scan_logs` enforces a PostgreSQL `UNIQUE (scan_id)` constraint.
-3. **Dropped ACK Mitigation:** If an opportunistic sync HTTP request is acknowledged by the server but the connection drops before the client receives the 200 OK, the client will retry the same batch. The server detects the existing `scan_id` and acknowledges the record idempotently without logging a false collision.
-
----
-
-## 4. Concurrency & Split-Brain Mitigation
-
-1. **PostgreSQL Pessimistic Locking:** Incoming sync batches are processed inside database transactions. When evaluating a ticket, the reconciliation service locks the row:
-   ```php
-   $ticket = Ticket::where('id', $ticketId)->lockForUpdate()->first();
-   ```
-2. **Supabase Port 5432 Connection:** Laravel's database configuration MUST connect through the Supabase Session Pooler on **Port 5432** (not Transaction Pooler 6543) so that `SELECT ... FOR UPDATE` locks are honored without connection termination.
-3. **Collision Auditing:** When two distinct `scan_id` records attempt to claim the same `ticket_id`, the second scan is isolated, and both records are logged in `audit_logs` under anomaly type `SPLIT_BRAIN_COLLISION` for forensic review.
-4. **Authoritative Timestamp Tie-Breaker:** Server `server_received_at` timestamp is the sole authority for sequence resolution. Device `scanned_at` is treated strictly as informational telemetry.
-
----
-
-## 5. Marshal Override Security
-
-1. **Master PIN Protection:** The override PIN is never stored in plaintext. Mobile scanners compare hashed inputs against a salted environment configuration or supervisor hash.
-2. **Mandatory Audit Logging:** Every override bypass creates an immutable record with `anomaly_type = 'OVERRIDE'`, capturing the marshal's device ID, gate ID, and timestamp.
-
----
-
-## 6. Role-Based Access Boundaries
-
-1. The only end-user roles are `student`, `security_staff`, and `administrator`.
-2. Students can access only their own issued tickets and ticket secrets through the student mobile app.
-3. Security Staff authenticate to the offline scanner app and can download manifests only for gates assigned to them. A marshal override is an explicitly authorized Security Staff capability, not a separate account role.
-4. Administrators use the desktop web dashboard to configure events and gate assignments and to monitor system and audit logs. Administrative endpoints must reject student and Security Staff tokens.
+- PostgreSQL row locks require a direct/session-style connection that preserves transaction semantics. Verify the exact Supabase connection mode and behavior in the deployment environment before relying on lock-based reconciliation.
+- Local PHP/SQLite tests validate application behavior but do not prove PostgreSQL concurrency behavior. Run a multi-connection PostgreSQL test before making scale or duplicate-prevention claims.
+- A lost or compromised scanner device is an operational incident: deactivate its staff account, secure or wipe the device, and reconcile its outstanding queue if recoverable. Online token revocation cannot erase already cached data from a disconnected device.
