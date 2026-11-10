@@ -22,6 +22,7 @@ class SecurityStaffResource extends JsonResource
             'id' => $user->getKey(),
             'name' => $user->name,
             'email' => $user->email,
+            'is_active' => (bool) $user->is_active,
         ];
     }
 }

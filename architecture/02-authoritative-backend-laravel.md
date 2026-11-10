@@ -1,5 +1,7 @@
 # 02 - Authoritative Backend Architecture (Laravel REST API)
 
+> **Status:** Historical design reference. Some behavior below is planned or superseded. For current behavior, see [the current architecture](../docs/architecture.md), [API guide](../docs/api.md), and [security notes](../.agents/SECURITY.md); source code and tests are authoritative.
+
 ## 1. Overview
 The backend application is built using PHP Laravel, functioning as the centralized state authority. It issues cryptographic seeds, authenticates users, receives opportunistic scan sync batches, enforces row-level concurrency locking, and resolves synchronization conflicts.
 

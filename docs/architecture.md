@@ -1,6 +1,6 @@
 # EUEvent Architecture Guide
 
-This is the entry point for the MSEUF Offline Ticketing System architecture. The detailed specifications remain in [`architecture/`](../architecture/). This guide describes the project we are building; the supplied Ingress documents were reference material from a different design and do not replace our requirements.
+This is the entry point for the EUEvent architecture. The detailed files in [`architecture/`](../architecture/) include historical proposals and are not a claim that every described capability is shipped. For current behavior, check this guide, [`api.md`](api.md), the `.agents` security notes, and the source/tests. The supplied Ingress documents were reference material from a different design and do not replace our requirements.
 
 ## Product roles and clients
 
@@ -26,14 +26,14 @@ Admin web dashboard ── admin API ──────┘
 - **Supabase PostgreSQL** is the shared server database for normal development and hosted use. Migrations in `backend/database/migrations` define its schema. Credentials and service keys stay in local environment files and the hosted secret store.
 - **Local presentation PostgreSQL** is an isolated alternative for demonstrations on Fedora. It runs in Lerd's PostgreSQL service, uses the ignored `backend/.env.demo` environment, and is reachable by phones on the same Wi-Fi through the Laravel API. It does not replicate with Supabase; the demo has its own accounts and tickets. Setup and run instructions are in [the backend README](../backend/README.md#local-presentation-mode).
 - **Admin web** is a React + TypeScript desktop client. It renders server data and sends administrator actions through the versioned API. The server remains responsible for authorization and business rules.
-- **Student mobile** renders the student's own ticket. The QR token rotates every 30 seconds using the ticket's TOTP seed; a static screenshot must not be treated as a valid ticket.
+- **Student mobile** renders the student's own ticket. The QR token rotates every 30 seconds using the ticket's TOTP seed. A screenshot can still be replayed during its active 30-second step; rotation limits the replay window but does not prove a live display.
 - **Security scanner mobile** signs in, downloads only its assigned gate's manifest, validates rotating tokens against its own clock, encrypts the manifest and pending scans before storing them locally, and syncs batches when connectivity returns. These flows are implemented in the Expo scanner services and screens.
 
 ## Offline admission and reconciliation
 
 The scanner is allowed to validate against its preloaded manifest while offline; rejecting every scan whenever the server is unreachable would remove a core product requirement. Each scanner can only know its own local scan history while disconnected. Two disconnected gates can therefore accept the same ticket before either syncs. The server detects the conflict during reconciliation, records the anomaly, and preserves the evidence for review. The UI must not claim that offline admission prevents cross-gate replay in real time.
 
-The scanner clock is the trust anchor for TOTP verification. Student device time is not trusted. `scan_id` is minted once per optical scan and reused on retries so a dropped acknowledgement does not create a second admission. See [TOTP and offline sync](../architecture/08-cryptographic-and-offline-sync-engine.md), [gate partitioning](../architecture/09-gate-partitioning-and-marshal-override.md), and [sync service code](../backend/app/Services/Sync/SyncScanProcessor.php).
+The scanner checks the exact current 30-second TOTP step; it currently has no clock-drift grace step, so student and scanner clocks should use automatic time. A `scan_id` is minted once per optical scan and reused on retries so a dropped acknowledgement does not create a second server record. Distinct offline scans of one ticket can both be locally accepted and become a collision only after sync. The first server transaction to claim the ticket is retained; server-received time does not reveal which offline scan happened physically first. See [TOTP and offline sync](../architecture/08-cryptographic-and-offline-sync-engine.md), [gate partitioning](../architecture/09-gate-partitioning-and-marshal-override.md), and [sync service code](../backend/app/Services/Sync/SyncScanProcessor.php).
 
 ## MVC responsibilities
 

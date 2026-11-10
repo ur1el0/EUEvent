@@ -20,6 +20,10 @@ class AdminActivityLog extends Model
 
     public const ACTION_SECURITY_STAFF_ACCOUNT_CREATED = 'security_staff_account_created';
 
+    public const ACTION_SECURITY_STAFF_ACTIVATED = 'security_staff_activated';
+
+    public const ACTION_SECURITY_STAFF_DEACTIVATED = 'security_staff_deactivated';
+
     public $timestamps = false;
 
     protected function casts(): array

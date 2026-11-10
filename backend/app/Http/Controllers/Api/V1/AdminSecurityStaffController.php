@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\SetSecurityStaffStatusRequest;
 use App\Http\Requests\Api\V1\StoreSecurityStaffRequest;
 use App\Http\Resources\Api\V1\SecurityStaffResource;
 use App\Models\AdminActivityLog;
 use App\Models\User;
+use App\Services\AdminSecurityStaffAccessService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -18,7 +20,7 @@ class AdminSecurityStaffController extends Controller
         $staff = User::query()
             ->where('role', User::ROLE_SECURITY_STAFF)
             ->orderBy('name')
-            ->get(['id', 'name', 'email']);
+            ->get(['id', 'name', 'email', 'is_active']);
 
         return response()->json([
             'staff' => SecurityStaffResource::collection($staff)->resolve($request),
@@ -56,5 +58,26 @@ class AdminSecurityStaffController extends Controller
         return response()->json([
             'staff' => (new SecurityStaffResource($staff))->resolve($request),
         ], 201);
+    }
+
+    public function updateStatus(
+        SetSecurityStaffStatusRequest $request,
+        User $staff,
+        AdminSecurityStaffAccessService $accessService,
+    ): JsonResponse {
+        abort_unless($staff->isSecurityStaff(), 404);
+
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 403);
+
+        $updatedStaff = $accessService->setActive(
+            $staff,
+            $actor,
+            (bool) $request->validated()['is_active'],
+        );
+
+        return response()->json([
+            'staff' => (new SecurityStaffResource($updatedStaff))->resolve($request),
+        ]);
     }
 }

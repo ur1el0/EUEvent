@@ -1,7 +1,7 @@
 # ADR 002: RFC 6238 Dynamic TOTP QR Codes over Static Codes
 
 ## Status
-Accepted
+Superseded by [ADR 012](012-current-step-totp-and-replay-boundary.md)
 
 ## Context
 Traditional ticketing platforms rely on static QR codes containing a ticket UUID or barcode string. In university campus events, attendees frequently take screenshots of their tickets and distribute them to peers via messaging platforms (Messenger, Telegram, AirDrop), resulting in double-admissions and fraudulent gate entry.

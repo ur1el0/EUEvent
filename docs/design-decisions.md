@@ -7,12 +7,12 @@ This guide records choices that are accepted for this project and explains how n
 | Area | Current decision | Reference |
 | --- | --- | --- |
 | Application structure | Distributed MVC: Laravel API and domain services, React administrator client, Expo mobile clients. | [ADR 001](../architecture/decisions/001-distributed-mvc-architecture.md) |
-| Student ticket | Rotating RFC 6238 TOTP QR; a static QR is not accepted. | [ADR 002](../architecture/decisions/002-rfc6238-totp-dynamic-qr-over-static-codes.md) |
-| Time authority | Scanner clock validates the student's rotating token. | [ADR 003](../architecture/decisions/003-scanner-hardware-clock-as-trust-anchor.md) |
+| Student ticket | Rotating 30-second QR; a screenshot from the active step can still be replayed in that step. | [ADR 012](../architecture/decisions/012-current-step-totp-and-replay-boundary.md) |
+| Time authority | Scanner clock accepts the exact current step (zero-step tolerance); clocks must be aligned. | [ADR 012](../architecture/decisions/012-current-step-totp-and-replay-boundary.md) |
 | Offline sync | UUID v4 `scan_id`, persisted before sending and reused on retries. | [ADR 004](../architecture/decisions/004-uuid-v4-idempotent-sync-keys.md) |
 | Admin refresh | HTTP polling; no WebSocket dependency for dashboard metrics. | [ADR 006](../architecture/decisions/006-http-polling-over-websockets.md) |
 | Local scanner data | Manifest and pending scan payloads are AES-256-GCM ciphertext in SQLite; AES keys and student ticket snapshots stay in SecureStore. | [ADR 010](../architecture/decisions/010-encrypted-offline-ticket-and-scan-storage.md) |
-| Operational exception | Marshal override is a staff capability with an auditable result, not a fourth user role. | [ADR 008](../architecture/decisions/008-marshal-pin-override-contingency.md) |
+| Operational exception | No in-app PIN override exists in the MVP; the API rejects overrides and event staff use an event-lead physical procedure. | [ADR 013](../architecture/decisions/013-manual-exception-procedure-without-pin-override.md) |
 
 A decision is **accepted** only when recorded in a project ADR or an existing project rule. A reference, screenshot, generated code example, or downloaded document alone does not change the system.
 
@@ -56,7 +56,7 @@ The brand guide calls for a dark, high-contrast visual system. The desktop Figma
 - Use soft rounded geometry throughout: about 12–16 px for controls, 16–20 px for cards, and pill shapes for status and filter controls. Keep radii consistent within a screen.
 - Prefer rounded outline icons with curved joins and caps (for example, Lucide's default stroke style). Avoid sharp, point-heavy symbols when a rounded equivalent exists. Icon shape does not replace a text label.
 - Use saffron to focus attention, not as a large text color on light surfaces. Check contrast for every text/background pair.
-- Never communicate scan outcomes by color alone. Include a clear label and symbol for valid, invalid/expired, wrong-gate, duplicate, override, and server/sync states.
+- Never communicate scan outcomes by color alone. Include a clear label and symbol for locally accepted/provisional, invalid/expired, wrong-gate, duplicate, anomaly, and server/sync states.
 - Keep mobile tap targets at least 44 × 44 points, maintain visible keyboard focus on web, and respect system font scaling.
 - Give rotating student tickets a visible expiry countdown and refresh state. A QR code must remain large, legible, and free of decorative overlays that interfere with scanning.
 

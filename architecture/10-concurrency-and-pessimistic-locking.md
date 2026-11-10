@@ -1,5 +1,7 @@
 # 10 - Concurrency & Pessimistic Locking Architecture
 
+> **Status:** Historical design reference. Validate lock behavior against the current service and PostgreSQL deployment before relying on these proposals. See [current architecture](../docs/architecture.md) and [API guide](../docs/api.md).
+
 ## 1. Overview
 When multiple mobile scanners regain network reachability simultaneously, they transmit overlapping batches of scan logs. Without database-level concurrency controls, race conditions can cause double-spending and corrupted inventory states. This document details the concurrency model, Supabase connection pooler requirements, and row-level locking strategy.
 

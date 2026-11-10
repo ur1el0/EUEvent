@@ -21,7 +21,7 @@ class AdminEventOptionsController extends Controller
         $securityStaff = User::query()
             ->where('role', User::ROLE_SECURITY_STAFF)
             ->orderBy('name')
-            ->get(['id', 'name', 'email']);
+            ->get(['id', 'name', 'email', 'is_active']);
 
         return response()->json([
             'venues' => VenueResource::collection($venues)->resolve($request),

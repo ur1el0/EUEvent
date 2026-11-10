@@ -131,6 +131,9 @@ export function SignInScreen() {
             />
           </View>
           {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
+          <Pressable onPress={() => router.push('/forgot-password')} accessibilityRole="button" style={styles.forgotPasswordButton}>
+            <Text style={styles.forgotPasswordText}>Forgot password?</Text>
+          </Pressable>
           <Pressable
             onPress={() => void submit()}
             disabled={isSubmitting || !identifier.trim() || !password}
@@ -183,6 +186,8 @@ const styles = StyleSheet.create({
   passwordWrap: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border, borderRadius: 15, paddingHorizontal: 14 },
   passwordInput: { flex: 1, color: colors.text, fontFamily: fonts.body, fontSize: 15, paddingVertical: 12 },
   error: { color: colors.red, fontFamily: fonts.bodyStrong, fontSize: 12, lineHeight: 18, marginTop: 12 },
+  forgotPasswordButton: { minHeight: 44, alignSelf: 'flex-end', justifyContent: 'center', paddingHorizontal: 2 },
+  forgotPasswordText: { color: colors.gold, fontFamily: fonts.bodyBold, fontSize: 12 },
   button: { minHeight: 54, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.gold, borderRadius: 16, marginTop: 20 },
   buttonPressed: { opacity: 0.85 },
   buttonDisabled: { opacity: 0.48 },

@@ -1,5 +1,7 @@
 # 01 - System Overview & Distributed MVC Architecture
 
+> **Status:** Historical design reference. Some behavior below is planned or superseded. For current behavior, see [the current architecture](../docs/architecture.md), [API guide](../docs/api.md), and [security notes](../.agents/SECURITY.md); source code and tests are authoritative.
+
 ## 1. Executive Summary
 The **MSEUF Events Offline Ticketing System** is an offline-first cryptographic admissions management platform engineered for university events (e.g., Foundation Week, University Days, concerts, sporting meets) at Manuel S. Enverga University Foundation (MSEUF).
 

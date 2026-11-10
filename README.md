@@ -104,6 +104,7 @@ Build the dashboard from `admin-web/` with `npm run build`. Check the Expo app w
 - [Administrator dashboard](admin-web/README.md)
 - [Student and scanner mobile app](security-scanner/README.md)
 - [API contract](docs/api.md)
+- [Offline readiness hardening developer handoff](docs/handoffs/offline-readiness-hardening.md)
 - [System overview](architecture/01-system-overview.md)
 - [Offline sync and security design](architecture/08-cryptographic-and-offline-sync-engine.md)
 - [Testing strategy](architecture/11-testing-and-verification-strategy.md)

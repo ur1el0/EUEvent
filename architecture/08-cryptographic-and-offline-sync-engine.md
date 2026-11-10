@@ -1,5 +1,7 @@
 # 08 - Cryptographic & Offline Synchronization Engine
 
+> **Status:** Historical design reference. Some behavior below is planned or superseded. For current behavior, see [the current architecture](../docs/architecture.md), [API guide](../docs/api.md), and [security notes](../.agents/SECURITY.md); source code and tests are authoritative.
+
 ## 1. Cryptographic Model: Dynamic TOTP Verification
 
 Traditional event ticketing systems that present static QR codes are vulnerable to instantaneous screenshot theft via messaging apps. The MSEUF system enforces offline dynamic QR tokens via RFC 6238 TOTP:

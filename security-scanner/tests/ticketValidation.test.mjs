@@ -158,3 +158,22 @@ test('a screenshot of a valid QR remains valid during its current 30-second slot
 
   assert.equal(result.valid, true);
 });
+
+test('ticket lookup index is built once and reused for a manifest', async () => {
+  const manifest = makeManifest();
+  const tickets = manifest.tickets;
+  const originalMap = tickets.map.bind(tickets);
+  let indexBuilds = 0;
+  Object.defineProperty(tickets, 'map', {
+    configurable: true,
+    value: (...args) => {
+      indexBuilds++;
+      return originalMap(...args);
+    },
+  });
+
+  await validateTicketQrCore(makePayload(), manifest, 41, CURRENT_TIME, generateCode);
+  await validateTicketQrCore(makePayload(), manifest, 41, CURRENT_TIME, generateCode);
+
+  assert.equal(indexBuilds, 1);
+});
