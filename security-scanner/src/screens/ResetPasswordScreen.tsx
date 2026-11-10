@@ -1,21 +1,15 @@
 import { useState } from 'react';
 import { router } from 'expo-router';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, KeyRound } from 'lucide-react-native';
+import { Button } from '../components/ui/Button';
+import { IconLabelButton } from '../components/ui/IconLabelButton';
+import { StatusBanner } from '../components/ui/StatusBanner';
+import { TextField } from '../components/ui/TextField';
 import { useSecuritySession } from '../hooks/useSecuritySession';
 import { resetPassword } from '../services/passwordRecovery';
-import { colors, fonts } from '../theme';
+import { colors, spacing, typography } from '../theme';
 
 export function ResetPasswordScreen() {
   const { serverUrl } = useSecuritySession();
@@ -55,52 +49,48 @@ export function ResetPasswordScreen() {
     }
   }
 
+  const isIncomplete = !email.trim() || !token.trim() || password.length < 12 || !passwordConfirmation;
+
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <SafeAreaView style={styles.flex}>
         <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
-          <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Back" style={styles.backButton}>
-            <ArrowLeft color={colors.text} size={19} />
-            <Text style={styles.backText}>Back</Text>
-          </Pressable>
+          <IconLabelButton icon={ArrowLeft} label="Back" tone="text" onPress={() => router.back()} style={styles.backButton} />
 
           <View style={styles.heroIcon}><KeyRound color={colors.gold} size={27} /></View>
           <Text style={styles.eyebrow}>ACCOUNT RECOVERY</Text>
-          <Text style={styles.title}>Set a new password</Text>
+          <Text style={styles.title} accessibilityRole="header">Set a new password</Text>
           <Text style={styles.intro}>Use the email address and one-time token from the reset email. Tokens expire after 60 minutes.</Text>
 
           <View style={styles.card}>
-            <Text style={styles.label}>Account email</Text>
-            <TextInput value={email} onChangeText={setEmail} placeholder="name@school.edu.ph" placeholderTextColor={colors.muted}
-              autoCapitalize="none" autoComplete="email" keyboardType="email-address" inputMode="email" maxLength={255}
-              style={styles.input} accessibilityLabel="Account email" />
+            <TextField label="Account email" value={email} onChangeText={setEmail} placeholder="name@school.edu.ph"
+              autoCapitalize="none" autoComplete="email" keyboardType="email-address" inputMode="email" maxLength={255} />
 
-            <Text style={[styles.label, styles.fieldSpacing]}>Reset token</Text>
-            <TextInput value={token} onChangeText={setToken} placeholder="Paste the token from your email" placeholderTextColor={colors.muted}
-              autoCapitalize="none" autoCorrect={false} autoComplete="off" maxLength={255} style={styles.input}
-              accessibilityLabel="One-time reset token" />
+            <TextField label="Reset token" accessibilityLabel="One-time reset token" value={token} onChangeText={setToken}
+              placeholder="Paste the token from your email" autoCapitalize="none" autoCorrect={false} autoComplete="off"
+              maxLength={255} containerStyle={styles.fieldSpacing} />
 
-            <Text style={[styles.label, styles.fieldSpacing]}>New password</Text>
-            <TextInput value={password} onChangeText={setPassword} secureTextEntry autoComplete="new-password"
-              placeholder="At least 12 characters" placeholderTextColor={colors.muted} style={styles.input}
-              accessibilityLabel="New password" />
+            <TextField label="New password" secure value={password} onChangeText={setPassword} autoComplete="new-password"
+              autoCapitalize="none" placeholder="At least 12 characters" containerStyle={styles.fieldSpacing} />
 
-            <Text style={[styles.label, styles.fieldSpacing]}>Confirm new password</Text>
-            <TextInput value={passwordConfirmation} onChangeText={setPasswordConfirmation} secureTextEntry autoComplete="new-password"
-              placeholder="Enter the password again" placeholderTextColor={colors.muted} onSubmitEditing={() => void submit()}
-              returnKeyType="done" style={styles.input} accessibilityLabel="Confirm new password" />
+            <TextField label="Confirm new password" secure value={passwordConfirmation} onChangeText={setPasswordConfirmation}
+              autoComplete="new-password" autoCapitalize="none" placeholder="Enter the password again"
+              onSubmitEditing={() => void submit()} returnKeyType="done" containerStyle={styles.fieldSpacing} />
 
             <Text style={styles.helper}>Choose at least 12 characters. Resetting your password signs out existing sessions.</Text>
-            {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
-            {notice ? <Text accessibilityRole="text" accessibilityLiveRegion="polite" style={styles.notice}>{notice}</Text> : null}
-            <Pressable onPress={() => void submit()} disabled={isSubmitting || !email.trim() || !token.trim() || password.length < 12 || !passwordConfirmation}
-              accessibilityRole="button" style={[styles.primaryButton, (isSubmitting || !email.trim() || !token.trim() || password.length < 12 || !passwordConfirmation) && styles.disabledButton]}>
-              {isSubmitting ? <ActivityIndicator color={colors.background} /> : <Text style={styles.primaryButtonText}>Update password</Text>}
-            </Pressable>
+            {error ? <StatusBanner tone="error" message={error} style={styles.banner} /> : null}
+            {notice ? <StatusBanner tone="info" message={notice} style={styles.banner} /> : null}
+            <Button
+              label="Update password"
+              loadingLabel="Updating…"
+              onPress={() => void submit()}
+              loading={isSubmitting}
+              disabled={isIncomplete}
+              accessibilityHint={isIncomplete ? 'Fill in every field; the new password needs at least 12 characters' : undefined}
+              style={styles.primaryButton}
+            />
             {notice ? (
-              <Pressable onPress={() => router.replace('/')} accessibilityRole="button" style={styles.secondaryButton}>
-                <Text style={styles.secondaryButtonText}>Return to sign in</Text>
-              </Pressable>
+              <Button label="Return to sign in" variant="secondary" onPress={() => router.replace('/')} style={styles.secondaryButton} />
             ) : null}
           </View>
         </ScrollView>
@@ -112,22 +102,15 @@ export function ResetPasswordScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.background },
   page: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingTop: 24, paddingBottom: 32 },
-  backButton: { minHeight: 44, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 30 },
-  backText: { color: colors.text, fontFamily: fonts.bodyStrong, fontSize: 14 },
+  backButton: { alignSelf: 'flex-start', marginLeft: -spacing.sm, marginBottom: 30 },
   heroIcon: { width: 58, height: 58, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceRaised, marginBottom: 20 },
-  eyebrow: { color: colors.gold, fontFamily: fonts.bodyBold, fontSize: 11, letterSpacing: 1.8, marginBottom: 7 },
-  title: { color: colors.text, fontFamily: fonts.headingStrong, fontSize: 36, lineHeight: 40 },
-  intro: { color: colors.muted, fontFamily: fonts.body, fontSize: 14, lineHeight: 21, marginTop: 10, marginBottom: 18 },
+  eyebrow: { ...typography.eyebrow, color: colors.gold, marginBottom: 7 },
+  title: { ...typography.display, color: colors.text },
+  intro: { ...typography.body, color: colors.muted, marginTop: 10, marginBottom: 18 },
   card: { backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.border, padding: 18 },
-  label: { color: colors.text, fontFamily: fonts.bodyStrong, fontSize: 13, marginBottom: 8 },
   fieldSpacing: { marginTop: 15 },
-  input: { minHeight: 50, paddingHorizontal: 14, borderWidth: 1, borderColor: colors.border, borderRadius: 15, backgroundColor: colors.background, color: colors.text, fontFamily: fonts.body, fontSize: 14 },
-  helper: { color: colors.muted, fontFamily: fonts.bodyRegular, fontSize: 12, lineHeight: 18, marginTop: 13 },
-  error: { marginTop: 12, color: colors.red, fontFamily: fonts.bodyStrong, fontSize: 12, lineHeight: 18 },
-  notice: { marginTop: 12, color: colors.green, fontFamily: fonts.bodyStrong, fontSize: 13, lineHeight: 19 },
-  primaryButton: { minHeight: 52, alignItems: 'center', justifyContent: 'center', marginTop: 18, borderRadius: 16, backgroundColor: colors.gold },
-  disabledButton: { opacity: 0.55 },
-  primaryButtonText: { color: colors.background, fontFamily: fonts.bodyBold, fontSize: 15 },
-  secondaryButton: { minHeight: 44, alignItems: 'center', justifyContent: 'center', marginTop: 8 },
-  secondaryButtonText: { color: colors.gold, fontFamily: fonts.bodyBold, fontSize: 13 },
+  helper: { ...typography.caption, color: colors.muted, marginTop: 13 },
+  banner: { marginTop: 12 },
+  primaryButton: { marginTop: 18 },
+  secondaryButton: { marginTop: 10 },
 });
