@@ -12,6 +12,10 @@ export type GateManifest = {
   gate_id: number;
   event_status: 'scheduled' | 'in_progress';
   manifest_version: number;
+  // Optional so manifests cached before these fields existed still load.
+  event_starts_at?: string;
+  event_ends_at?: string;
+  generated_at?: string;
   tickets: GateManifestTicket[];
 };
 
@@ -25,6 +29,10 @@ export async function fetchGateManifest(token: string, gateId: number): Promise<
   return payload;
 }
 
+function isOptionalTimestamp(value: unknown): boolean {
+  return value === undefined || (typeof value === 'string' && !Number.isNaN(Date.parse(value)));
+}
+
 function isGateManifest(payload: unknown): payload is GateManifest {
   if (typeof payload !== 'object' || payload === null) {
     return false;
@@ -35,6 +43,9 @@ function isGateManifest(payload: unknown): payload is GateManifest {
   return Number.isInteger(manifest.gate_id)
     && (manifest.event_status === 'scheduled' || manifest.event_status === 'in_progress')
     && Number.isInteger(manifest.manifest_version)
+    && isOptionalTimestamp(manifest.event_starts_at)
+    && isOptionalTimestamp(manifest.event_ends_at)
+    && isOptionalTimestamp(manifest.generated_at)
     && Array.isArray(manifest.tickets)
     && manifest.tickets.every((ticket) => typeof ticket === 'object'
       && ticket !== null
