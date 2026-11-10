@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AccountPasswordController;
 use App\Http\Controllers\Api\V1\AdminActivityLogController;
 use App\Http\Controllers\Api\V1\AdminEventController;
 use App\Http\Controllers\Api\V1\AdminEventGateAssignmentController;
@@ -14,6 +15,7 @@ use App\Http\Controllers\Api\V1\GateManifestController;
 use App\Http\Controllers\Api\V1\MobilePasswordResetController;
 use App\Http\Controllers\Api\V1\StudentTicketController;
 use App\Http\Controllers\Api\V1\SyncBatchController;
+use App\Models\User;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
@@ -28,6 +30,13 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/auth/me', [AuthController::class, 'me']);
         Route::post('/auth/logout', [AuthController::class, 'logout']);
     });
+
+    Route::patch('/auth/password', AccountPasswordController::class)
+        ->middleware([
+            'auth:sanctum',
+            'role:'.User::ROLE_STUDENT.','.User::ROLE_SECURITY_STAFF.','.User::ROLE_ADMINISTRATOR,
+            'throttle:6,1',
+        ]);
 
     Route::get('/student/tickets', StudentTicketController::class)
         ->middleware(['auth:sanctum', 'role:student']);
