@@ -17,7 +17,8 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/euevent-192.png"
+      "favicon": "./assets/euevent-192.png",
+      "output": "static"
     },
     "scheme": "euevent-scanner",
     "plugins": [

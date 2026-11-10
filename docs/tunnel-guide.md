@@ -6,7 +6,7 @@ LAN mode (`npm run start:lan`) only works when every phone is on the same Wi-Fi 
 | --- | --- | --- |
 | Laravel API (port `8002`) | Cloudflare quick tunnel | `https://<random>.trycloudflare.com/api/v1` |
 | Admin dashboard (Vite, port `5173`) | Cloudflare quick tunnel | `https://<random>.trycloudflare.com` |
-| Expo app | Expo's built-in tunnel (`expo start --tunnel`) | QR code in the terminal |
+| Expo app | Expo CLI's ngrok tunnel (`expo start --tunnel ngrok`, no Expo account needed) | QR code in the terminal |
 
 Quick tunnels need no Cloudflare account. Their addresses change every time the script starts.
 
