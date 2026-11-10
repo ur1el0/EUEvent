@@ -100,7 +100,7 @@ The gate must belong to the event venue; every staff ID must belong to a securit
 
 ### Manifest availability
 
-`GET /api/v1/gates/{gateId}/manifest` returns 409 unless the event is `scheduled` or `in_progress`. The manifest now includes `event_status` alongside `gate_id`, `manifest_version`, and tickets. The mobile scanner stores the entire manifest as authenticated AES-GCM ciphertext in SQLite; its 256-bit encryption key stays in SecureStore. A previously downloaded offline manifest cannot receive an immediate cancellation or postponement; local validation is provisional until reconciliation.
+`GET /api/v1/gates/{gateId}/manifest` returns 409 unless the event is `scheduled` or `in_progress`. The manifest includes `gate_id`, `event_status`, `manifest_version`, `event_starts_at`, `event_ends_at`, `generated_at`, and `tickets`. The three time fields are ISO 8601 strings: the event's scheduled window and the server time when the response was built. They were added without renaming or removing any existing field. The scanner measures manifest age with its own clock from the moment it saved the download, and refuses or warns according to [ADR 014](../architecture/decisions/014-offline-manifest-freshness-policy.md). `generated_at` is stored for display and audit only; it is not used as a time source. The mobile scanner stores the entire manifest as authenticated AES-GCM ciphertext in SQLite; its 256-bit encryption key stays in SecureStore. A previously downloaded offline manifest cannot receive an immediate cancellation or postponement; local validation is provisional until reconciliation.
 
 ### Assigned gate discovery
 

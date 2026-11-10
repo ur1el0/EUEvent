@@ -12,17 +12,24 @@ class GateManifestResource extends JsonResource
     public static $wrap = null;
 
     /**
-     * @return array{gate_id: int, event_status: string, manifest_version: int, tickets: array<int, array{ticket_id: int, student_number: string|null, totp_secret: string, gate_id: int, status: string}>}
+     * Event times and generated_at are ISO 8601 strings. generated_at is server
+     * time; the scanner measures manifest age with its own clock.
+     *
+     * @return array{gate_id: int, event_status: string, manifest_version: int, event_starts_at: string, event_ends_at: string, generated_at: string, tickets: array<int, array{ticket_id: int, student_number: string|null, totp_secret: string, gate_id: int, status: string}>}
      */
     public function toArray(Request $request): array
     {
         /** @var EventGate $eventGate */
         $eventGate = $this->resource;
+        $event = $eventGate->event;
 
         return [
             'gate_id' => $eventGate->getKey(),
-            'event_status' => $eventGate->event->status,
-            'manifest_version' => $eventGate->event->configuration_version,
+            'event_status' => $event->status,
+            'manifest_version' => $event->configuration_version,
+            'event_starts_at' => $event->starts_at->toIso8601String(),
+            'event_ends_at' => $event->ends_at->toIso8601String(),
+            'generated_at' => now()->toIso8601String(),
             'tickets' => $eventGate->tickets
                 ->map(function (Ticket $ticket): array {
                     return [
