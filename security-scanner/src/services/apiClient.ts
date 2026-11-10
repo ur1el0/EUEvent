@@ -7,6 +7,14 @@ export class ApiError extends Error {
   }
 }
 
+/** The request never reached the server (offline, wrong address, or timeout). */
+export class NetworkError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'NetworkError';
+  }
+}
+
 export const DEFAULT_API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL?.trim().replace(/\/+$/, '')
   || 'http://localhost:8000/api/v1';
 
@@ -44,7 +52,7 @@ export async function apiRequest<T>(
       signal: controller.signal,
     });
   } catch {
-    throw new Error('Could not reach the event server. Check the server address and network.');
+    throw new NetworkError('Could not reach the event server. Check the server address and network.');
   } finally {
     clearTimeout(timeoutId);
   }
