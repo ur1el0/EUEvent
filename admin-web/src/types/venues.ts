@@ -11,27 +11,27 @@ export interface Venue {
   gates: VenueGate[];
 }
 
-/** GET /api/v1/admin/venues (planned). */
+/** GET /api/v1/admin/venues. */
 export interface VenuesResponse {
   venues: Venue[];
 }
 
-/** POST /api/v1/admin/venues (planned). */
+/** POST /api/v1/admin/venues. */
 export interface CreateVenuePayload {
   name: string;
   location_details: string | null;
 }
 
-/** PATCH /api/v1/admin/venues/{venue} (planned). */
+/** PATCH /api/v1/admin/venues/{venue}. */
 export type UpdateVenuePayload = Partial<CreateVenuePayload>;
 
-/** POST /api/v1/admin/venues/{venue}/gates (planned). */
+/** POST /api/v1/admin/venues/{venue}/gates. */
 export interface CreateGatePayload {
   code: string;
   name: string;
 }
 
-/** PATCH /api/v1/admin/venues/{venue}/gates/{gate} (planned). */
+/** PATCH /api/v1/admin/venues/{venue}/gates/{gate}. */
 export type UpdateGatePayload = Partial<CreateGatePayload>;
 
 /** Laravel 422 field errors, keyed by field name. */

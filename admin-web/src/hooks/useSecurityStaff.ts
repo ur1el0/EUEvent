@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   createSecurityStaff, deleteSecurityStaff, fetchSecurityStaff, setSecurityStaffActive,
 } from '../services/accountService';
-import { errorMessage } from '../services/errorMessage';
+import { errorMessage, isNotFoundError } from '../services/errorMessage';
 import type { SecurityStaff } from '../types';
 import { useFlashMessages } from './useFlashMessages';
 
@@ -13,10 +13,11 @@ export interface NewStaffValues {
   password_confirmation: string;
 }
 
-/** Security staff list, create, activate/deactivate and (planned) soft delete. */
+/** Security staff list, create, activate/deactivate and soft delete. */
 export function useSecurityStaff(token: string) {
   const flash = useFlashMessages();
   const [staff, setStaff] = useState<SecurityStaff[]>([]);
+  const [reloadKey, setReloadKey] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
@@ -33,7 +34,7 @@ export function useSecurityStaff(token: string) {
       .finally(() => { if (isCurrent) setIsLoading(false); });
 
     return () => { isCurrent = false; };
-  }, [token]);
+  }, [token, reloadKey]);
 
   async function create(values: NewStaffValues): Promise<boolean> {
     flash.clear();
@@ -85,7 +86,14 @@ export function useSecurityStaff(token: string) {
       flash.setNotice(`${deleteTarget.name} was deleted. The account is hidden and can no longer sign in; scan and assignment history is kept.`);
       setDeleteTarget(null);
     } catch (cause) {
-      setDeleteError(errorMessage(cause, 'Could not delete this staff account.'));
+      if (isNotFoundError(cause)) {
+        // Someone else already removed it: close the dialog, say so, and reload the list.
+        flash.setNotice(`${deleteTarget.name}'s account no longer exists. The list was refreshed.`);
+        setDeleteTarget(null);
+        setReloadKey((current) => current + 1);
+      } else {
+        setDeleteError(errorMessage(cause, 'Could not delete this staff account.'));
+      }
     } finally {
       setIsDeleting(false);
     }

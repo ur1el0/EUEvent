@@ -1,6 +1,5 @@
-import { AlertCircle, Building2, Check, Info, Loader2, Plus } from 'lucide-react';
+import { AlertCircle, Building2, Check, Loader2, Plus } from 'lucide-react';
 import { useVenues } from '../hooks/useVenues';
-import { FEATURE_UNAVAILABLE_MESSAGE } from '../services/plannedApi';
 import { VenueCard } from './venues/VenueCard';
 import { VenueForm } from './venues/VenueForm';
 
@@ -24,11 +23,6 @@ export function VenuesManagement({ token, onVenuesChanged }: VenuesManagementPro
         <div className="staff-total-pill"><Building2 size={16} /><span>{venues.venues.length} venues</span></div>
       </header>
 
-      {venues.isUnavailable && (
-        <div className="notice notice--stale" role="status">
-          <Info size={18} /><span>{FEATURE_UNAVAILABLE_MESSAGE} Venue management needs a server update.</span>
-        </div>
-      )}
       {venues.error && <div className="notice notice--error" role="alert"><AlertCircle size={18} /><span>{venues.error}</span></div>}
       {venues.notice && <div className="notice notice--success" role="status"><Check size={18} /><span>{venues.notice}</span></div>}
 
@@ -52,7 +46,7 @@ export function VenuesManagement({ token, onVenuesChanged }: VenuesManagementPro
             <div className="surface-card staff-empty-state">
               <span className="staff-empty-icon"><Building2 size={21} /></span>
               <strong>No venues to show</strong>
-              <p>{venues.isUnavailable ? 'The server cannot list venues yet.' : 'Create a venue, then add its gates.'}</p>
+              <p>Create a venue, then add its gates.</p>
             </div>
           )}
         </div>

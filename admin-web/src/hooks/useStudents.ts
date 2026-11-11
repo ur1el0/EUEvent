@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { deleteStudent, fetchStudents } from '../services/accountService';
-import { errorMessage } from '../services/errorMessage';
+import { errorMessage, isNotFoundError } from '../services/errorMessage';
 import type { StudentAccount, StudentPageMeta } from '../types/accounts';
 import { useFlashMessages } from './useFlashMessages';
 
@@ -14,6 +14,7 @@ export function useStudents(token: string) {
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
   const [activeSearch, setActiveSearch] = useState('');
+  const [reloadKey, setReloadKey] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<StudentAccount | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -34,7 +35,7 @@ export function useStudents(token: string) {
       .finally(() => { if (isCurrent) setIsLoading(false); });
 
     return () => { isCurrent = false; };
-  }, [token, page, activeSearch]);
+  }, [token, page, activeSearch, reloadKey]);
 
   function search(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
@@ -54,7 +55,14 @@ export function useStudents(token: string) {
       flash.setNotice(`${deleteTarget.name} (${deleteTarget.student_number}) was deleted. The account is hidden and can no longer sign in; history is kept.`);
       setDeleteTarget(null);
     } catch (cause) {
-      setDeleteError(errorMessage(cause, 'Could not delete this student account.'));
+      if (isNotFoundError(cause)) {
+        // Someone else already removed it: close the dialog, say so, and reload the list.
+        flash.setNotice(`${deleteTarget.name}'s account no longer exists. The list was refreshed.`);
+        setDeleteTarget(null);
+        setReloadKey((current) => current + 1);
+      } else {
+        setDeleteError(errorMessage(cause, 'Could not delete this student account.'));
+      }
     } finally {
       setIsDeleting(false);
     }

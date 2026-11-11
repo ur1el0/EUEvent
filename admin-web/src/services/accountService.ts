@@ -1,5 +1,4 @@
 import { apiRequest } from './apiClient';
-import { plannedRequest } from './plannedApi';
 import type { SecurityStaff } from '../types';
 import type { StudentPage } from '../types/accounts';
 
@@ -25,9 +24,9 @@ export async function setSecurityStaffActive(token: string, staffId: number, isA
   return result.staff;
 }
 
-/** DELETE /api/v1/admin/security-staff/{staff} (planned; soft delete). */
+/** DELETE /api/v1/admin/security-staff/{staff}: soft delete. */
 export async function deleteSecurityStaff(token: string, staffId: number): Promise<void> {
-  await plannedRequest('/admin/security-staff/' + staffId, { method: 'DELETE', token });
+  await apiRequest('/admin/security-staff/' + staffId, { method: 'DELETE', token });
 }
 
 export function fetchStudents(token: string, page: number, perPage: number, search: string): Promise<StudentPage> {
@@ -37,7 +36,7 @@ export function fetchStudents(token: string, page: number, perPage: number, sear
   return apiRequest<StudentPage>('/admin/students?' + query.toString(), { token });
 }
 
-/** DELETE /api/v1/admin/students/{student} (planned; soft delete). */
+/** DELETE /api/v1/admin/students/{student}: soft delete. */
 export async function deleteStudent(token: string, studentId: number): Promise<void> {
-  await plannedRequest('/admin/students/' + studentId, { method: 'DELETE', token });
+  await apiRequest('/admin/students/' + studentId, { method: 'DELETE', token });
 }

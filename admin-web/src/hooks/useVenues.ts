@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ApiError } from '../services/apiClient';
 import { errorMessage } from '../services/errorMessage';
-import { FeatureUnavailableError } from '../services/plannedApi';
 import { createGate, createVenue, fetchVenues, updateGate, updateVenue } from '../services/venueService';
 import type {
   CreateGatePayload, CreateVenuePayload, FieldErrors, UpdateGatePayload, UpdateVenuePayload, Venue,
@@ -19,25 +18,20 @@ function failure(cause: unknown, fallback: string): SubmitResult {
 }
 
 /**
- * Venues and their gates through the planned /admin/venues endpoints. `onChanged` runs after every
+ * Venues and their gates through the /admin/venues endpoints. `onChanged` runs after every
  * successful change so the event-options list (used by the new-event form) is refetched.
  */
 export function useVenues(token: string, onChanged: () => Promise<void>) {
   const flash = useFlashMessages();
   const [venues, setVenues] = useState<Venue[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isUnavailable, setIsUnavailable] = useState(false);
 
   useEffect(() => {
     let isCurrent = true;
 
     fetchVenues(token)
       .then((list) => { if (isCurrent) setVenues(list); })
-      .catch((cause: unknown) => {
-        if (!isCurrent) return;
-        if (cause instanceof FeatureUnavailableError) setIsUnavailable(true);
-        else flash.setError(errorMessage(cause, 'Could not load venues.'));
-      })
+      .catch((cause: unknown) => { if (isCurrent) flash.setError(errorMessage(cause, 'Could not load venues.')); })
       .finally(() => { if (isCurrent) setIsLoading(false); });
 
     return () => { isCurrent = false; };
@@ -61,7 +55,6 @@ export function useVenues(token: string, onChanged: () => Promise<void>) {
     ...flash,
     venues,
     isLoading,
-    isUnavailable,
     create: (body: CreateVenuePayload) => run(async () => {
       const created = await createVenue(token, body);
       setVenues((current) => [...current, { ...created, gates: created.gates ?? [] }]);
