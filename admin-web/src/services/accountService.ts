@@ -1,7 +1,7 @@
 import { apiRequest } from './apiClient';
 import { plannedRequest } from './plannedApi';
 import type { SecurityStaff } from '../types';
-import type { StudentAccount, StudentPage } from '../types/accounts';
+import type { StudentPage } from '../types/accounts';
 
 export async function fetchSecurityStaff(token: string): Promise<SecurityStaff[]> {
   const result = await apiRequest<{ staff: SecurityStaff[] }>('/admin/security-staff', { token });
@@ -35,14 +35,6 @@ export function fetchStudents(token: string, page: number, perPage: number, sear
   if (search) query.set('search', search);
 
   return apiRequest<StudentPage>('/admin/students?' + query.toString(), { token });
-}
-
-export async function createStudent(
-  token: string,
-  body: { name: string; student_number: string; email: string; password: string; password_confirmation: string },
-): Promise<StudentAccount> {
-  const result = await apiRequest<{ student: StudentAccount }>('/admin/students', { method: 'POST', token, body });
-  return result.student;
 }
 
 /** DELETE /api/v1/admin/students/{student} (planned; soft delete). */
