@@ -10,6 +10,7 @@ import { PendingQueueCard } from '../components/scannerHome/PendingQueueCard';
 import { PreEventChecklist } from '../components/scannerHome/PreEventChecklist';
 import { ScannerHomeHeader } from '../components/scannerHome/ScannerHomeHeader';
 import { useGateAssignments } from '../hooks/useGateAssignments';
+import { getGateScanState } from '../services/gateScanAvailability';
 import { usePendingScans } from '../hooks/usePendingScans';
 import { useSecuritySession } from '../hooks/useSecuritySession';
 import { useStaffSignOut } from '../hooks/useStaffSignOut';
@@ -73,25 +74,18 @@ export function ScannerHomeScreen() {
               <Text style={styles.emptyText}>Ask an administrator to assign you to an event gate, then refresh this screen.</Text>
             </View>
           ) : null}
-          {assignments.map((assignment) => {
-            const snapshot = offlineManifests[assignment.gate_id];
-            const manifestVersionMismatch = snapshot !== undefined
-              && snapshot.manifest.manifest_version !== assignment.manifest_version;
-
-            return (
-              <AssignmentCard
-                key={assignment.gate_id}
-                assignment={assignment}
-                cachedManifest={cachedManifests[assignment.gate_id]}
-                isDownloading={gates.downloadingGateId === assignment.gate_id}
-                isOffline={isOffline}
-                manifestVersionMismatch={manifestVersionMismatch}
-                canScan={Boolean(snapshot) && (!manifestVersionMismatch || isOffline)}
-                onScan={() => setSelectedScanGateId(assignment.gate_id)}
-                onDownload={() => gates.downloadManifest(assignment)}
-              />
-            );
-          })}
+          {assignments.map((assignment) => (
+            <AssignmentCard
+              key={assignment.gate_id}
+              assignment={assignment}
+              cachedManifest={cachedManifests[assignment.gate_id]}
+              scanState={getGateScanState(assignment, offlineManifests[assignment.gate_id]?.manifest.manifest_version, isOffline)}
+              isDownloading={gates.downloadingGateId === assignment.gate_id}
+              isOffline={isOffline}
+              onScan={() => setSelectedScanGateId(assignment.gate_id)}
+              onDownload={() => gates.downloadManifest(assignment)}
+            />
+          ))}
 
           <PreEventChecklist
             staffName={session.user?.name ?? ''}

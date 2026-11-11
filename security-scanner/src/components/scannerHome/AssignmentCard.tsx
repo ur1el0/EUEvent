@@ -1,28 +1,22 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Camera, CheckCircle2, CloudDownload, MapPin } from 'lucide-react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { CheckCircle2, MapPin } from 'lucide-react-native';
+import { Button } from '../ui/Button';
 import type { AssignedGate } from '../../services/assignedGates';
+import type { GateScanState } from '../../services/gateScanAvailability';
 import type { CachedManifestSummary } from '../../services/offlineManifestStore';
-import { colors, fonts } from '../../theme';
+import { colors, fonts, radius, spacing, typography } from '../../theme';
 
-export function AssignmentCard({
-  assignment,
-  cachedManifest,
-  isDownloading,
-  isOffline,
-  manifestVersionMismatch,
-  canScan,
-  onScan,
-  onDownload,
-}: {
+type AssignmentCardProps = {
   assignment: AssignedGate;
   cachedManifest?: CachedManifestSummary;
+  scanState: GateScanState;
   isDownloading: boolean;
   isOffline: boolean;
-  manifestVersionMismatch: boolean;
-  canScan: boolean;
   onScan: () => void;
   onDownload: () => void;
-}) {
+};
+
+export function AssignmentCard({ assignment, cachedManifest, scanState, isDownloading, isOffline, onScan, onDownload }: AssignmentCardProps) {
   const statusLabel = assignment.event_status.replace('_', ' ');
   const eventDate = new Date(assignment.starts_at);
   const schedule = Number.isNaN(eventDate.getTime())
@@ -55,47 +49,43 @@ export function AssignmentCard({
           <Text style={styles.statValue}>v{assignment.manifest_version}</Text>
         </View>
       </View>
+
       <View style={styles.manifestRow}>
-        <View style={styles.manifestCopy}>
-          {cachedManifest ? (
-            <>
-              <Text style={styles.manifestReady}><CheckCircle2 size={13} color={colors.green} />  Encrypted copy · {cachedManifest.ticketCount} tickets</Text>
-              <Text style={styles.manifestMeta}>Version {cachedManifest.manifestVersion} · downloaded {formatDownloadedAt(cachedManifest.downloadedAt)}</Text>
-            </>
-          ) : (
-            <Text style={styles.manifestMeta}>No offline manifest saved for this gate yet.</Text>
-          )}
-        </View>
-        <View style={styles.manifestActions}>
-          {canScan ? (
-            <Pressable onPress={onScan} disabled={!isActive} accessibilityRole="button" style={[styles.scanButton, !isActive && styles.downloadButtonDisabled]}>
-              <Camera size={15} color={colors.gold} />
-              <Text style={styles.scanButtonText}>Scan</Text>
-            </Pressable>
-          ) : null}
-          <Pressable
-            onPress={onDownload}
-            disabled={isDownloading || isOffline || !isActive}
-            accessibilityRole="button"
-            style={[styles.downloadButton, (isDownloading || isOffline || !isActive) && styles.downloadButtonDisabled]}
-          >
-            {isDownloading
-              ? <ActivityIndicator color={colors.background} size="small" />
-              : <CloudDownload size={15} color={colors.background} />}
-            <Text style={styles.downloadButtonText}>
-              {isDownloading ? 'Saving' : cachedManifest ? 'Update' : 'Prepare'}
-            </Text>
-          </Pressable>
-        </View>
+        {cachedManifest ? (
+          <>
+            <View style={styles.manifestReadyRow}>
+              <CheckCircle2 size={15} color={colors.green} />
+              <Text style={styles.manifestReady}>Encrypted copy · {cachedManifest.ticketCount} tickets</Text>
+            </View>
+            <Text style={styles.manifestMeta}>Version {cachedManifest.manifestVersion} · downloaded {formatDownloadedAt(cachedManifest.downloadedAt)}</Text>
+          </>
+        ) : (
+          <Text style={styles.manifestMeta}>No offline manifest saved for this gate yet.</Text>
+        )}
       </View>
-      {manifestVersionMismatch ? (
+
+      <Button
+        label="Scan"
+        onPress={onScan}
+        disabled={!scanState.canScan}
+        accessibilityHint={scanState.reason ?? `Opens the scanner for ${assignment.gate_name}`}
+        style={styles.scanButton}
+      />
+      {scanState.reason ? <Text style={styles.scanReason}>{scanState.reason}</Text> : null}
+      {scanState.isListOutOfDate && isOffline ? (
         <Text style={styles.manifestUnavailable}>
-          {isOffline
-            ? 'Offline: this saved manifest is out of date. Use the event’s offline admission procedure; local results may miss later changes.'
-            : 'The event changed after this manifest was saved. Update the manifest before scanning.'}
+          Offline: this saved manifest is out of date. Use the event’s offline admission procedure; local results may miss later changes.
         </Text>
       ) : null}
-      {!isActive ? <Text style={styles.manifestUnavailable}>Manifests are available when the event is scheduled or in progress.</Text> : null}
+      <Button
+        label={cachedManifest ? 'Update' : 'Prepare'}
+        loadingLabel="Saving"
+        variant="secondary"
+        onPress={onDownload}
+        loading={isDownloading}
+        disabled={isOffline || !isActive}
+        style={styles.downloadButton}
+      />
     </View>
   );
 }
@@ -108,34 +98,31 @@ function formatDownloadedAt(value: string) {
 }
 
 const styles = StyleSheet.create({
-  assignmentCard: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 21, padding: 15, marginBottom: 12 },
+  assignmentCard: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, padding: spacing.md, marginBottom: spacing.sm + 4 },
   assignmentHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   assignmentIcon: { width: 40, height: 40, borderRadius: 14, backgroundColor: colors.surfaceRaised, alignItems: 'center', justifyContent: 'center' },
   assignmentCopy: { flex: 1, gap: 3 },
-  gateName: { color: colors.text, fontFamily: fonts.bodyBold, fontSize: 13 },
-  gateMeta: { color: colors.muted, fontFamily: fonts.bodyRegular, fontSize: 9 },
-  eventBadge: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 5 },
+  gateName: { ...typography.bodyStrong, fontFamily: fonts.bodyBold, color: colors.text },
+  gateMeta: { ...typography.caption, color: colors.muted },
+  eventBadge: { borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 5 },
   eventBadgeActive: { backgroundColor: '#123D32' },
   eventBadgeOther: { backgroundColor: colors.surfaceRaised },
-  eventBadgeText: { fontFamily: fonts.bodyBold, fontSize: 8, textTransform: 'uppercase' },
+  eventBadgeText: { ...typography.caption, fontFamily: fonts.bodyBold },
   eventBadgeTextActive: { color: colors.green },
   eventBadgeTextOther: { color: colors.muted },
   divider: { height: 1, backgroundColor: colors.border, marginVertical: 12 },
-  eventName: { color: colors.text, fontFamily: fonts.heading, fontSize: 19 },
-  schedule: { color: colors.muted, fontFamily: fonts.bodyRegular, fontSize: 10, marginTop: 3 },
+  eventName: { ...typography.sectionTitle, color: colors.text },
+  schedule: { ...typography.caption, color: colors.muted, marginTop: 3 },
   assignmentStats: { flexDirection: 'row', gap: 28, marginTop: 13 },
   stat: { gap: 3 },
-  statLabel: { color: colors.muted, fontFamily: fonts.bodyBold, fontSize: 8, letterSpacing: 1 },
-  statValue: { color: colors.text, fontFamily: fonts.bodyStrong, fontSize: 12 },
-  manifestRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, borderTopWidth: 1, borderTopColor: colors.border, marginTop: 14, paddingTop: 12 },
-  manifestActions: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  scanButton: { minHeight: 39, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 12, borderRadius: 14, borderWidth: 1, borderColor: colors.gold, backgroundColor: colors.surfaceRaised },
-  scanButtonText: { color: colors.gold, fontFamily: fonts.bodyBold, fontSize: 10 },
-  manifestCopy: { flex: 1, gap: 4 },
-  manifestReady: { color: colors.green, fontFamily: fonts.bodyBold, fontSize: 10 },
-  manifestMeta: { color: colors.muted, fontFamily: fonts.bodyRegular, fontSize: 9, lineHeight: 14 },
-  downloadButton: { minHeight: 39, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 12, borderRadius: 14, backgroundColor: colors.gold },
-  downloadButtonDisabled: { opacity: 0.45 },
-  downloadButtonText: { color: colors.background, fontFamily: fonts.bodyBold, fontSize: 10 },
-  manifestUnavailable: { color: colors.muted, fontFamily: fonts.bodyRegular, fontSize: 9, marginTop: 8 },
+  statLabel: { ...typography.eyebrow, color: colors.muted },
+  statValue: { ...typography.bodyStrong, color: colors.text },
+  manifestRow: { gap: 4, borderTopWidth: 1, borderTopColor: colors.border, marginTop: 14, paddingTop: 12 },
+  manifestReadyRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  manifestReady: { ...typography.bodyStrong, fontFamily: fonts.bodyBold, color: colors.green },
+  manifestMeta: { ...typography.caption, color: colors.muted },
+  scanButton: { marginTop: spacing.md },
+  scanReason: { ...typography.bodyStrong, color: colors.text, textAlign: 'center', marginTop: spacing.sm },
+  manifestUnavailable: { ...typography.caption, color: colors.muted, marginTop: spacing.sm },
+  downloadButton: { marginTop: spacing.sm + 2 },
 });
