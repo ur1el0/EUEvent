@@ -8,8 +8,8 @@ export function useStaffSignOut(staffId: number | undefined, pendingScansCount: 
   async function signOut() {
     if (staffId && pendingScansCount > 0) {
       Alert.alert(
-        'Scans are waiting to sync',
-        `${pendingScansCount} validated ${pendingScansCount === 1 ? 'scan is' : 'scans are'} still encrypted on this device. Signing out keeps them here for this staff account to sync later.`,
+        'Scans not sent yet',
+        `${pendingScansCount} checked ${pendingScansCount === 1 ? 'scan is' : 'scans are'} still saved on this phone. Signing out keeps them here so this staff account can send them to the server later.`,
         [
           { text: 'Stay signed in', style: 'cancel' },
           {

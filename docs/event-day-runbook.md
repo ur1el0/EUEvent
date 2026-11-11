@@ -27,15 +27,15 @@ Do these steps while the venue network and API are working.
 1. **Assign staff.** In the dashboard, assign each gate's security staff to the event. After an event is scheduled you can add gates and staff, but you cannot remove existing ones. Plan replacements by adding, not removing.
 2. **Check staff accounts.** Make sure every assigned staff member is active in **Security staff** and can sign in.
 3. **Set phone clocks to automatic.** On every scanner phone and, where possible, on student phones, turn on automatic date and time and automatic time zone. The scanner accepts only the current 30-second QR step and uses its own clock to measure manifest age. A wrong clock causes expired QR rejections or a manifest refusal.
-4. **Download manifests while online.** Each staff member opens the scanner app, refreshes assignments, and taps **Prepare** or **Update** on their gate. Do this on the day of the event. A manifest older than 24 hours is refused (proposed threshold, ADR 014).
-5. **Check manifest version and time.** On each gate card, the saved copy's version must match the **Configuration** version, and the download time must be today. When the phone is online and the versions differ, the app hides **Scan** until the manifest is updated. Open the scanner and confirm that no "manifest may be outdated" or "scanning paused" banner is showing.
+4. **Download manifests while online.** The app calls a gate manifest the gate's **ticket list**. Each staff member opens the scanner app, refreshes assignments, and taps **Download ticket list** or **Update ticket list** on their gate. Do this on the day of the event. A manifest older than 24 hours is refused (proposed threshold, ADR 014).
+5. **Check each gate card.** The card must say **Ready for offline** with today's save time, and **Scan** must be enabled. When the phone is online and the event changed after the ticket list was saved, **Scan** stays disabled with "Ticket list out of date, update it" until the list is updated. Open the scanner and confirm that no "Ticket list may be outdated" or "Scanning paused" banner is showing.
 6. **Re-download after late changes.** If the administrator changes the event, its gates, or its tickets after manifests were downloaded, every affected gate downloads again.
 7. **Charge and prepare backups.** Charge phones fully and bring power banks. Prepare at least one spare phone per entrance area, signed in and with a manifest downloaded, as described in [low battery or camera failure](#low-battery-or-camera-failure).
 8. **Prepare the exception log.** Give each gate a paper or shared exception log for the [manual exception procedure](#manual-exception-procedure).
 
 ## During entry
 
-A green **Locally validated · saved on device** result means the QR matched the manifest saved on this phone. It is provisional until the scan syncs. Keep scanners on the gate screen so queued scans sync in the background whenever the API is reachable.
+A green **ADMIT** with "Saved on this phone, not yet confirmed by server" means the QR matched the manifest saved on this phone. It is provisional until the scan is sent to the server. Keep scanners on the gate screen so saved scans are sent in the background whenever the API is reachable.
 
 ### WAN or API outage
 
@@ -43,7 +43,7 @@ Scanning keeps working from the saved manifest, and scans queue on the phone. Th
 
 ### Stale manifest warning or refusal
 
-- **"Manifest may be outdated, refresh when connected"**: scanning still works. When the network is available, close the scanner and tap **Update** on the gate. If the network is down, tell the event lead, who decides whether to continue.
+- **"Ticket list may be outdated, update when connected"**: scanning still works. When the network is available, close the scanner and tap **Update ticket list** on the gate. If the network is down, tell the event lead, who decides whether to continue.
 - **"Scanning paused"** (manifest too old, event window ended, or manifest age unknown): do not admit from this phone. Refresh the manifest while connected. If you cannot, ask the event lead. If the message says the age is unknown, check that the phone uses automatic date and time before refreshing.
 
 Manifests saved by an app version older than this rule always show the stale warning until they are refreshed.
@@ -58,7 +58,7 @@ Manifests saved by an app version older than this rule always show the stale war
 
 ### Ticket already used or unknown
 
-Do not admit. **Ticket already used** or **already scanned** means this phone or its manifest already recorded the ticket. **Ticket not on this gate manifest** means the event or gate differs, or the manifest is out of date. Refer anything that cannot be resolved to the event lead.
+Do not admit. **Ticket already used** or **already scanned** means this phone or its manifest already recorded the ticket. **Ticket not on this gate’s list** means the event or gate differs, or the manifest is out of date. Refer anything that cannot be resolved to the event lead.
 
 ### Low battery or camera failure
 
@@ -110,12 +110,12 @@ A manual exception is never a server-confirmed admission. It does not appear in 
 ## After doors close
 
 1. **Reconnect every scanner.** Bring each phone, including spares and any recovered phones, onto the network with the same staff account still signed in.
-2. **Sync.** Open the scanner home or the gate scanner and let queued scans upload until the pending count reaches zero. Do not sign out or clear manifests while scans are pending.
+2. **Sync.** Open the scanner home or the gate scanner and let queued scans upload until the pending count reaches zero. On the scanner home, **Send to server** retries straight away. Do not sign out or clear manifests while scans are pending.
 3. **Review rejected scans and collisions.** In the dashboard activity log, filter by scans and anomalies. Look for:
    - `SPLIT_BRAIN_COLLISION`: another scanner already claimed the ticket. Two people may have entered on one ticket.
    - `TICKET_REVOKED`, `EVENT_NOT_ACTIVE`, `GATE_MISMATCH`, `INVALID_TICKET_CODE`: the gate admitted locally but the server rejected the scan on sync.
 4. **Reconcile the exception logs** against the scan history and note any follow-up.
-5. **Clear manifests on shared phones.** Once every scan has synced, use **Clear saved offline manifests** on phones that will be reused for other people.
+5. **Clear manifests on shared phones.** Once every scan has synced, open **Advanced** at the bottom of the scanner home and use **Clear saved ticket lists** on phones that will be reused for other people.
 
 ## Offline limits
 

@@ -45,8 +45,8 @@ export function useSyncQueue({ visible, token, serverUrl, staffId, onQueueChange
         const rejectedOutcomes = summary.outcomes.filter((outcome) => outcome.decision === 'rejected');
         if (rejectedOutcomes.length > 0) {
           const reason = serverReason(rejectedOutcomes[0].reason_code);
-          setSyncIssue(`${rejectedOutcomes.length} queued ${rejectedOutcomes.length === 1 ? 'scan was' : 'scans were'} rejected after sync. ${reason} Ask the event lead to review entry.`);
-          setSyncStatus(`${summary.accepted} accepted · ${summary.rejected} rejected after sync`);
+          setSyncIssue(`${rejectedOutcomes.length} queued ${rejectedOutcomes.length === 1 ? 'scan was' : 'scans were'} rejected by the server. ${reason} Ask the event lead to review entry.`);
+          setSyncStatus(`${summary.accepted} accepted · ${summary.rejected} rejected by the server`);
         } else if (summary.accepted > 0) {
           setSyncIssue('');
           setSyncStatus(`${summary.accepted} ${summary.accepted === 1 ? 'scan' : 'scans'} confirmed by the event server.`);
@@ -57,7 +57,7 @@ export function useSyncQueue({ visible, token, serverUrl, staffId, onQueueChange
       .catch(() => {
         retryAfter.current = Date.now() + BACKOFF_AFTER_FAILURE_MS;
         syncRequested.current = false;
-        setSyncStatus('Server unavailable. Scans stay saved on this phone; scanning can continue while sync retries in the background.');
+        setSyncStatus('Server unavailable. Scans stay saved on this phone; keep scanning and they will be sent when the server is reachable.');
       })
       .finally(() => {
         syncInFlight.current = false;

@@ -4,6 +4,7 @@ import { Button } from '../ui/Button';
 import type { AssignedGate } from '../../services/assignedGates';
 import type { GateScanState } from '../../services/gateScanAvailability';
 import type { CachedManifestSummary } from '../../services/offlineManifestStore';
+import { getEventStatusLabel } from '../../services/ticketStatus';
 import { colors, fonts, radius, spacing, typography } from '../../theme';
 
 type AssignmentCardProps = {
@@ -17,7 +18,7 @@ type AssignmentCardProps = {
 };
 
 export function AssignmentCard({ assignment, cachedManifest, scanState, isDownloading, isOffline, onScan, onDownload }: AssignmentCardProps) {
-  const statusLabel = assignment.event_status.replace('_', ' ');
+  const statusLabel = getEventStatusLabel(assignment.event_status);
   const eventDate = new Date(assignment.starts_at);
   const schedule = Number.isNaN(eventDate.getTime())
     ? 'Schedule unavailable'
@@ -30,7 +31,7 @@ export function AssignmentCard({ assignment, cachedManifest, scanState, isDownlo
         <View style={styles.assignmentIcon}><MapPin size={19} color={colors.gold} /></View>
         <View style={styles.assignmentCopy}>
           <Text style={styles.gateName}>{assignment.gate_name}</Text>
-          <Text style={styles.gateMeta}>{assignment.gate_code} · Gate ID {assignment.gate_id}</Text>
+          <Text style={styles.gateMeta}>Gate {assignment.gate_code}</Text>
         </View>
         <View style={[styles.eventBadge, isActive ? styles.eventBadgeActive : styles.eventBadgeOther]}>
           <Text style={[styles.eventBadgeText, isActive ? styles.eventBadgeTextActive : styles.eventBadgeTextOther]}>{statusLabel}</Text>
@@ -41,12 +42,8 @@ export function AssignmentCard({ assignment, cachedManifest, scanState, isDownlo
       <Text style={styles.schedule}>{schedule}</Text>
       <View style={styles.assignmentStats}>
         <View style={styles.stat}>
-          <Text style={styles.statLabel}>VALID TICKETS</Text>
+          <Text style={styles.statLabel}>TICKETS</Text>
           <Text style={styles.statValue}>{assignment.ticket_count.toLocaleString()}</Text>
-        </View>
-        <View style={styles.stat}>
-          <Text style={styles.statLabel}>CONFIGURATION</Text>
-          <Text style={styles.statValue}>v{assignment.manifest_version}</Text>
         </View>
       </View>
 
@@ -55,12 +52,12 @@ export function AssignmentCard({ assignment, cachedManifest, scanState, isDownlo
           <>
             <View style={styles.manifestReadyRow}>
               <CheckCircle2 size={15} color={colors.green} />
-              <Text style={styles.manifestReady}>Encrypted copy · {cachedManifest.ticketCount} tickets</Text>
+              <Text style={styles.manifestReady}>Ready for offline · {cachedManifest.ticketCount} tickets</Text>
             </View>
-            <Text style={styles.manifestMeta}>Version {cachedManifest.manifestVersion} · downloaded {formatDownloadedAt(cachedManifest.downloadedAt)}</Text>
+            <Text style={styles.manifestMeta}>Ticket list saved {formatDownloadedAt(cachedManifest.downloadedAt)}</Text>
           </>
         ) : (
-          <Text style={styles.manifestMeta}>No offline manifest saved for this gate yet.</Text>
+          <Text style={styles.manifestMeta}>No ticket list saved on this phone yet.</Text>
         )}
       </View>
 
@@ -74,12 +71,12 @@ export function AssignmentCard({ assignment, cachedManifest, scanState, isDownlo
       {scanState.reason ? <Text style={styles.scanReason}>{scanState.reason}</Text> : null}
       {scanState.isListOutOfDate && isOffline ? (
         <Text style={styles.manifestUnavailable}>
-          Offline: this saved manifest is out of date. Use the event’s offline admission procedure; local results may miss later changes.
+          Offline: this saved ticket list is out of date. Follow the event’s offline admission procedure; results may miss later changes.
         </Text>
       ) : null}
       <Button
-        label={cachedManifest ? 'Update' : 'Prepare'}
-        loadingLabel="Saving"
+        label={cachedManifest ? 'Update ticket list' : 'Download ticket list'}
+        loadingLabel="Downloading…"
         variant="secondary"
         onPress={onDownload}
         loading={isDownloading}

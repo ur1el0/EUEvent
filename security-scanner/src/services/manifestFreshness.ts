@@ -58,28 +58,28 @@ export function evaluateManifestFreshness(
   return { decision: 'fresh' };
 }
 
-const REFRESH_STEP = 'Close the scanner and tap Update on this gate while the phone is connected.';
+const REFRESH_STEP = 'Close the scanner and tap Update ticket list on this gate while the phone is connected.';
 
 const freshnessCopy: Record<Exclude<ManifestFreshness, { decision: 'fresh' }>['reason'], ManifestFreshnessCopy> = {
   downloaded_long_ago: {
-    title: 'Manifest may be outdated, refresh when connected',
-    detail: `This gate manifest was downloaded more than ${STALE_WARNING_HOURS} hours ago. It may miss later ticket revocations or event changes. ${REFRESH_STEP}`,
+    title: 'Ticket list may be outdated, update when connected',
+    detail: `This gate’s ticket list was downloaded more than ${STALE_WARNING_HOURS} hours ago. It may miss later ticket revocations or event changes. ${REFRESH_STEP}`,
   },
   missing_event_window: {
-    title: 'Manifest may be outdated, refresh when connected',
-    detail: `This copy was saved by an older app version and has no event end time, so it is treated as stale. ${REFRESH_STEP}`,
+    title: 'Ticket list may be outdated, update when connected',
+    detail: `This ticket list was saved by an older app version and has no event end time, so it is treated as outdated. ${REFRESH_STEP}`,
   },
   unknown_download_time: {
-    title: 'Scanning paused · manifest age unknown',
-    detail: 'This phone cannot confirm when the manifest was downloaded; the date or time may have changed. Do not admit from this manifest. Set the phone to automatic date and time, refresh the manifest while connected, or ask the event lead.',
+    title: 'Scanning paused · ticket list age unknown',
+    detail: 'This phone cannot confirm when the ticket list was downloaded; the date or time may have changed. Do not admit from this ticket list. Set the phone to automatic date and time, update the ticket list while connected, or ask the event lead.',
   },
   manifest_too_old: {
-    title: 'Scanning paused · manifest too old',
-    detail: `This gate manifest was downloaded more than ${MAX_MANIFEST_AGE_HOURS} hours ago. Do not admit from it. Refresh the manifest while connected, or ask the event lead.`,
+    title: 'Scanning paused · ticket list too old',
+    detail: `This gate’s ticket list was downloaded more than ${MAX_MANIFEST_AGE_HOURS} hours ago. Do not admit from it. Update the ticket list while connected, or ask the event lead.`,
   },
   event_ended: {
     title: 'Scanning paused · event window ended',
-    detail: `This phone’s clock is more than ${POST_EVENT_GRACE_MINUTES} minutes past the event’s scheduled end. Do not admit from this manifest. Refresh the manifest while connected, or ask the event lead.`,
+    detail: `This phone’s clock is more than ${POST_EVENT_GRACE_MINUTES} minutes past the event’s scheduled end. Do not admit from this ticket list. Update the ticket list while connected, or ask the event lead.`,
   },
 };
 

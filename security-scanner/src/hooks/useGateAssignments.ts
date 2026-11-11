@@ -21,7 +21,7 @@ type GateAssignmentsOptions = {
   refreshQueue: (attemptSync?: boolean) => Promise<void>;
 };
 
-/** Assigned gates plus the ticket lists (manifests) saved on this phone, with offline fallback. */
+/** Assigned gates plus the ticket lists (gate manifests) saved on this phone, with offline fallback. */
 export function useGateAssignments({ token, staffId, serverUrl, endSession, refreshQueue }: GateAssignmentsOptions) {
   const [assignments, setAssignments] = useState<AssignedGate[]>([]);
   const [cachedManifests, setCachedManifests] = useState<Record<number, CachedManifestSummary>>({});
@@ -64,7 +64,7 @@ export function useGateAssignments({ token, staffId, serverUrl, endSession, refr
       } else if ((!(cause instanceof ApiError) || cause.status >= 500) && savedManifests.length > 0) {
         setAssignments(savedManifests.map((snapshot) => snapshot.assignment));
         setIsOffline(true);
-        setMessage('Event server unavailable. Showing this device’s last downloaded gate manifests.');
+        setMessage('Event server unavailable. Showing the ticket lists last saved on this phone.');
       } else {
         setIsOffline(false);
         setMessage(cause instanceof Error ? cause.message : 'Could not load gate assignments.');
@@ -96,8 +96,8 @@ export function useGateAssignments({ token, staffId, serverUrl, endSession, refr
         await endSession();
       } else {
         Alert.alert(
-          'Manifest not saved',
-          cause instanceof Error ? cause.message : 'Could not download this gate manifest.',
+          'Ticket list not saved',
+          cause instanceof Error ? cause.message : 'Could not download this gate’s ticket list.',
         );
       }
     } finally {
@@ -107,10 +107,10 @@ export function useGateAssignments({ token, staffId, serverUrl, endSession, refr
 
   function confirmClearManifests() {
     Alert.alert(
-      'Clear offline manifests?',
-      'This removes the encrypted ticket data saved on this phone. Download the manifests again before the event.',
+      'Clear saved ticket lists?',
+      'This removes the ticket lists saved on this phone. Download them again before the event.',
       [
-        { text: 'Keep manifests', style: 'cancel' },
+        { text: 'Keep ticket lists', style: 'cancel' },
         {
           text: 'Clear',
           style: 'destructive',
@@ -120,7 +120,7 @@ export function useGateAssignments({ token, staffId, serverUrl, endSession, refr
                 setCachedManifests({});
                 setOfflineManifests({});
               })
-              .catch(() => Alert.alert('Could not clear manifests', 'Please try again.'));
+              .catch(() => Alert.alert('Could not clear ticket lists', 'Please try again.'));
           },
         },
       ],

@@ -88,7 +88,7 @@ export function useTicketScanner({ visible, assignment, snapshot, serverUrl, sta
       }
 
       onQueueChanged();
-      sync.setSyncStatus('Saved on this phone. Server confirmation can happen in the background.');
+      sync.setSyncStatus('Saved on this phone. It will be sent to the server in the background.');
       setDecision(localAdmitDecision(scan.scan_id, check.ticket.student_number));
       if (token) {
         sync.requestSync();
@@ -96,7 +96,7 @@ export function useTicketScanner({ visible, assignment, snapshot, serverUrl, sta
     } catch (cause) {
       setDecision(denyDecision({
         title: 'Could not record scan',
-        detail: cause instanceof Error ? cause.message : 'Check the encrypted device storage and try again.',
+        detail: cause instanceof Error ? cause.message : 'Check the phone’s storage and try again.',
       }));
     } finally {
       setIsProcessing(false);

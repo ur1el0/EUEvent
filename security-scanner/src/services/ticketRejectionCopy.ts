@@ -8,8 +8,8 @@ const rejectionCopy: Record<TicketQrReason, TicketRejectionCopy> = {
     detail: 'The QR code is not in the EUEvent ticket format. Ask the student to open the live ticket in the app.',
   },
   unknown_ticket: {
-    title: 'Ticket not on this gate manifest',
-    detail: 'Check that the event and gate printed on the ticket match this scanner. If they differ, direct the student to the listed entrance. If they match, pause entry and ask the event lead to refresh this gate’s manifest when connected.',
+    title: 'Ticket not on this gate’s list',
+    detail: 'Check that the event and gate printed on the ticket match this scanner. If they differ, direct the student to the listed entrance. If they match, pause entry and ask the event lead to update this gate’s ticket list when connected.',
   },
   wrong_gate: {
     title: 'Ticket belongs to another gate',
@@ -21,7 +21,7 @@ const rejectionCopy: Record<TicketQrReason, TicketRejectionCopy> = {
   },
   ticket_used: {
     title: 'Ticket already used',
-    detail: 'This saved manifest marks the ticket as already claimed. Do not admit it again.',
+    detail: 'The saved ticket list marks this ticket as already used. Do not admit it again.',
   },
   expired: {
     title: 'Rotating code expired',

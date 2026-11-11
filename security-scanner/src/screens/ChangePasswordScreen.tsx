@@ -93,7 +93,7 @@ export function ChangePasswordScreen() {
               placeholder="Enter the new password again" placeholderTextColor={colors.muted} onSubmitEditing={() => void submit()}
               returnKeyType="done" style={styles.input} accessibilityLabel="Confirm new password" />
 
-            <Text style={styles.helper}>Security staff: scans waiting to sync stay saved on this phone.</Text>
+            <Text style={styles.helper}>Security staff: scans not yet sent to the server stay saved on this phone.</Text>
             {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
             {notice ? <Text accessibilityRole="text" accessibilityLiveRegion="polite" style={styles.notice}>{notice}</Text> : null}
             <Pressable onPress={() => void submit()} disabled={!canSubmit} accessibilityRole="button"
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
   backButton: { minHeight: 44, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 30 },
   backText: { color: colors.text, fontFamily: fonts.bodyStrong, fontSize: 14 },
   heroIcon: { width: 58, height: 58, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceRaised, marginBottom: 20 },
-  eyebrow: { color: colors.gold, fontFamily: fonts.bodyBold, fontSize: 11, letterSpacing: 1.8, marginBottom: 7 },
+  eyebrow: { color: colors.gold, fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 1.8, marginBottom: 7 },
   title: { color: colors.text, fontFamily: fonts.headingStrong, fontSize: 36, lineHeight: 40 },
   intro: { color: colors.muted, fontFamily: fonts.body, fontSize: 14, lineHeight: 21, marginTop: 10, marginBottom: 18 },
   card: { backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.border, padding: 18 },

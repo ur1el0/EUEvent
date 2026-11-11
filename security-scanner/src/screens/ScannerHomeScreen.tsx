@@ -3,8 +3,8 @@ import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, T
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MapPin, RefreshCw } from 'lucide-react-native';
 import { GateScanModal } from './GateScanModal';
+import { AdvancedSection } from '../components/scannerHome/AdvancedSection';
 import { AssignmentCard } from '../components/scannerHome/AssignmentCard';
-import { ClearManifestsButton } from '../components/scannerHome/ClearManifestsButton';
 import { ConnectionStatusPill } from '../components/scannerHome/ConnectionStatusPill';
 import { PendingQueueCard } from '../components/scannerHome/PendingQueueCard';
 import { PreEventChecklist } from '../components/scannerHome/PreEventChecklist';
@@ -14,7 +14,7 @@ import { getGateScanState } from '../services/gateScanAvailability';
 import { usePendingScans } from '../hooks/usePendingScans';
 import { useSecuritySession } from '../hooks/useSecuritySession';
 import { useStaffSignOut } from '../hooks/useStaffSignOut';
-import { colors, fonts } from '../theme';
+import { colors, fonts, typography } from '../theme';
 
 export function ScannerHomeScreen() {
   const session = useSecuritySession();
@@ -50,7 +50,7 @@ export function ScannerHomeScreen() {
           <View style={styles.sectionHeader}>
             <View>
               <Text style={styles.sectionTitle}>Your assignments</Text>
-              <Text style={styles.sectionHint}>Current assignments or the last saved offline copies.</Text>
+              <Text style={styles.sectionHint}>Your gates, or the copies saved on this phone when offline.</Text>
             </View>
             <Pressable onPress={gates.refresh} disabled={isRefreshing} accessibilityRole="button" accessibilityLabel="Refresh assignments" style={styles.refreshButton}>
               {isRefreshing ? <ActivityIndicator color={colors.gold} /> : <RefreshCw size={16} color={colors.gold} />}
@@ -92,7 +92,7 @@ export function ScannerHomeScreen() {
             assignmentCount={assignments.length}
             preparedGateCount={Object.keys(cachedManifests).length}
           />
-          <ClearManifestsButton onPress={gates.confirmClearManifests} />
+          <AdvancedSection onClearTicketLists={gates.confirmClearManifests} />
           <Text style={styles.footer}>EUEvent · Secure entry operations</Text>
         </ScrollView>
       </SafeAreaView>
@@ -117,19 +117,19 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 30 },
   greeting: { marginBottom: 16 },
-  eyebrow: { color: colors.gold, fontFamily: fonts.bodyBold, fontSize: 10, letterSpacing: 1.7, marginBottom: 5 },
+  eyebrow: { ...typography.eyebrow, color: colors.gold, marginBottom: 5 },
   title: { color: colors.text, fontFamily: fonts.headingStrong, fontSize: 34, lineHeight: 39 },
   subtitle: { color: colors.muted, fontFamily: fonts.body, fontSize: 14, marginTop: 4 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 11 },
   sectionTitle: { color: colors.text, fontFamily: fonts.heading, fontSize: 23 },
-  sectionHint: { color: colors.muted, fontFamily: fonts.bodyRegular, fontSize: 10, marginTop: 2 },
-  refreshButton: { width: 40, height: 40, borderRadius: 14, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  sectionHint: { ...typography.caption, color: colors.muted, marginTop: 2 },
+  refreshButton: { width: 44, height: 44, borderRadius: 14, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   loadingCard: { minHeight: 108, borderRadius: 20, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', gap: 9, marginBottom: 13 },
   loadingText: { color: colors.muted, fontFamily: fonts.body, fontSize: 12 },
   error: { color: colors.red, fontFamily: fonts.bodyStrong, fontSize: 12, lineHeight: 18, backgroundColor: '#49201E', borderRadius: 14, padding: 12, marginBottom: 13 },
   emptyCard: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 21, alignItems: 'center', paddingHorizontal: 24, paddingVertical: 25, marginBottom: 14 },
   emptyIcon: { width: 48, height: 48, borderRadius: 17, backgroundColor: colors.surfaceRaised, alignItems: 'center', justifyContent: 'center', marginBottom: 11 },
   emptyTitle: { color: colors.text, fontFamily: fonts.heading, fontSize: 20 },
-  emptyText: { color: colors.muted, fontFamily: fonts.bodyRegular, textAlign: 'center', fontSize: 11, lineHeight: 17, marginTop: 5 },
-  footer: { color: colors.muted, fontFamily: fonts.bodyRegular, textAlign: 'center', fontSize: 10, marginTop: 22 },
+  emptyText: { ...typography.caption, color: colors.muted, textAlign: 'center', marginTop: 5 },
+  footer: { ...typography.caption, color: colors.muted, textAlign: 'center', marginTop: 22 },
 });

@@ -30,17 +30,17 @@ export function usePendingScans(serverUrl: string, staffId: number | undefined, 
           setPendingScansCount(pendingCount);
           if (summary.accepted || summary.rejected) {
             setSyncMessage(summary.rejected
-              ? `${summary.accepted} accepted · ${summary.rejected} rejected (${summary.reasons.join(', ')})`
-              : `${summary.accepted} offline ${summary.accepted === 1 ? 'scan' : 'scans'} synchronized`);
+              ? `${summary.accepted} accepted · ${summary.rejected} rejected by the server (${summary.reasons.join(', ')})`
+              : `${summary.accepted} saved ${summary.accepted === 1 ? 'scan' : 'scans'} sent to the server`);
           }
         } catch {
-          setSyncMessage('Scans remain encrypted on this device and will retry when the server is reachable.');
+          setSyncMessage('Could not reach the server. Scans stay saved on this phone; try again when connected.');
         } finally {
           setIsSyncingScans(false);
         }
       }
     } catch (cause) {
-      setSyncMessage(cause instanceof Error ? cause.message : 'Could not read the local scan queue.');
+      setSyncMessage(cause instanceof Error ? cause.message : 'Could not read the scans saved on this phone.');
     }
   }, [serverUrl, staffId, token]);
 

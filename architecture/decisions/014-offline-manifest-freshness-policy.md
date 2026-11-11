@@ -23,7 +23,7 @@ Before each local admission decision, `security-scanner/src/services/manifestFre
 | Refuse | The manifest was downloaded more than `MAX_MANIFEST_AGE_HOURS` ago. | Does not admit. Tells staff to refresh the manifest while connected or ask the event lead. |
 | Refuse | Phone time is later than `event_ends_at` plus `POST_EVENT_GRACE_MINUTES`. | Same as above. |
 | Refuse | `downloadedAt` cannot be read, or lies more than `CLOCK_ROLLBACK_TOLERANCE_MINUTES` in the future, which means the phone clock was moved back. | Same as above, and also tells staff to set automatic date and time. |
-| Warn | The manifest was downloaded more than `STALE_WARNING_HOURS` ago. | Scanning continues. Shows "Manifest may be outdated, refresh when connected". |
+| Warn | The manifest was downloaded more than `STALE_WARNING_HOURS` ago. | Scanning continues. Shows "Ticket list may be outdated, update when connected" (the app calls the manifest a ticket list). |
 | Warn | The manifest has no readable `event_ends_at`, for example a copy saved by an older app version. | Scanning continues, but the copy is always treated as stale. The maximum-age refusal still applies. |
 | Fresh | None of the above. | Normal validation. |
 

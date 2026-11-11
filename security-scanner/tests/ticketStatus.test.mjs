@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 import ts from 'typescript';
 
-const { canShowTicketPass, getTicketStatusLabel, sortTicketsForDisplay } = await loadTypeScriptModule(
+const { canShowTicketPass, getEventStatusLabel, getTicketStatusLabel, sortTicketsForDisplay } = await loadTypeScriptModule(
   new URL('../src/services/ticketStatus.ts', import.meta.url),
 );
 const { getSignOutWarning } = await loadTypeScriptModule(
@@ -61,6 +61,12 @@ test('every event status gets a friendly label instead of the raw API word', () 
     .map((eventStatus) => getTicketStatusLabel(makeTicket({ eventStatus })));
 
   assert.deepEqual(labels, ['Not scheduled yet', 'Entry opens soon', 'Entry open', 'Postponed', 'Cancelled', 'Ended']);
+});
+
+test('staff gate cards use the same event labels as student tickets', () => {
+  assert.equal(getEventStatusLabel('in_progress'), 'Entry open');
+  assert.equal(getEventStatusLabel('completed'), 'Ended');
+  assert.equal(getEventStatusLabel('scheduled'), getTicketStatusLabel(makeTicket({ eventStatus: 'scheduled' })));
 });
 
 test('a used or revoked ticket shows that status whatever the event status is', () => {

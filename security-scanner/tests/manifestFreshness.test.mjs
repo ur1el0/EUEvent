@@ -115,7 +115,7 @@ test('the maximum age check runs before the event window check', () => {
 test('warning copy asks staff to refresh when connected', () => {
   for (const reason of ['downloaded_long_ago', 'missing_event_window']) {
     const copy = getManifestFreshnessCopy({ decision: 'warn', reason });
-    assert.match(copy.title, /manifest may be outdated, refresh when connected/i);
+    assert.match(copy.title, /ticket list may be outdated, update when connected/i);
     assert.match(copy.detail, /connected/);
   }
 });
@@ -124,7 +124,7 @@ test('refusal copy says not to admit and to refresh or ask the event lead', () =
   for (const reason of ['unknown_download_time', 'manifest_too_old', 'event_ended']) {
     const copy = getManifestFreshnessCopy({ decision: 'refuse', reason });
     assert.match(copy.detail, /Do not admit/);
-    assert.match(copy.detail, /refresh the manifest while connected, or ask the event lead/i);
+    assert.match(copy.detail, /update the ticket list while connected, or ask the event lead/i);
   }
 });
 
