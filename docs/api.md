@@ -16,6 +16,9 @@ This document records the API conventions for this project and marks which route
 | Method and path | Access | Implemented behavior |
 | --- | --- | --- |
 | `POST /api/v1/auth/login` | Public, throttled | Issues a Sanctum token and returns the user identity and role. |
+| `POST /api/v1/auth/register` | Public, throttled | Starts student self-registration and emails a one-time code. Always returns the same `202`. No account exists until the code is verified. |
+| `POST /api/v1/auth/register/verify` | Public, throttled | Verifies the code and creates the student account. `201`, no token. |
+| `POST /api/v1/auth/register/resend` | Public, throttled | Sends a new code for a pending registration. Always returns the same `202`. |
 | `POST /api/v1/auth/password/email` | Public, throttled | Returns the same 202 response for any email; emails a one-time reset token only to eligible student or security staff accounts. Delivery requires configured mail. |
 | `POST /api/v1/auth/password/reset` | Public, throttled | Accepts email, one-time token, and confirmed new password. Successful reset revokes the user's existing API tokens. |
 | `POST /api/v1/auth/logout` | Authenticated | Revokes the current token. |
@@ -34,7 +37,7 @@ This document records the API conventions for this project and marks which route
 | `PUT /api/v1/admin/events/{event}/gates` | Administrator | Replaces draft assignments or adds gates/staff after scheduling while preserving existing offline scanner assignments. |
 | `POST /api/v1/admin/events/{event}/tickets` | Administrator | Issues or reissues a ticket to an existing student account for a gate assigned to the event. |
 | `GET /api/v1/admin/students` | Administrator | Returns a paginated student directory with optional name, email, or student-number search. |
-| `POST /api/v1/admin/students` | Administrator | Creates a student account with a server-assigned student role and hashed initial password. |
+| `POST /api/v1/admin/students` | Administrator | Creates a student account with a server-assigned student role and hashed initial password. Not used by the dashboard; students now register themselves. |
 | `GET /api/v1/admin/security-staff` | Administrator | Returns scanner staff accounts with active status. |
 | `PATCH /api/v1/admin/security-staff/{staff}/status` | Administrator | Activates/deactivates one security staff account. Deactivation revokes server-side API tokens and writes an admin activity record. A disconnected scanner cannot receive the change until it reconnects. |
 | `DELETE /api/v1/admin/security-staff/{staff}` | Administrator | Soft deletes a security staff account (see [Deleting accounts](#deleting-student-and-security-staff-accounts)). `204`; repeating it also returns `204`. |
@@ -47,6 +50,45 @@ This document records the API conventions for this project and marks which route
 | `GET /api/v1/admin/activity-logs` | Administrator | Returns recent account, event-change, scan-decision, and anomaly activity with filters. |
 
 For exact response fields, inspect the matching Laravel controller and API Resource. The login response has `token` and `user`. `user` contains `id`, `student_number`, `name`, `email`, and `role`, and `GET /api/v1/auth/me` returns the same `user` object. `email` was added without renaming or removing any other field; a client talking to an older API may not receive it and must tolerate its absence. The response never contains a password, remember token, or other tokens, and it does not promise the extra `token_type`, `created_at`, or `student_id` fields shown in the reference. The metrics resource currently reports `pending_sync_estimate: null` because scanner heartbeat counts are not implemented. Clients must render this as unavailable, not zero.
+
+## Student self-registration
+
+Three public routes let a student create their own account ([ADR 016](../architecture/decisions/016-student-self-registration.md), status Proposed). No token is issued; the student signs in afterwards with `POST /api/v1/auth/login` and their student number.
+
+### `POST /api/v1/auth/register`
+
+Body: `student_number`, `name`, `email`, `password`, `password_confirmation`.
+
+- The email is lowercased, and the text after the last `@` must equal an allowed domain exactly. The defaults are `student.mseuf.edu.ph` and `mseuf.edu.ph` (`REGISTRATION_ALLOWED_EMAIL_DOMAINS`). A lookalike such as `evilmseuf.edu.ph` or `student.mseuf.edu.ph.evil.com` is rejected.
+- The student number is trimmed, accepted in any case, stored in uppercase and must match `^[A-Z]\d{2}-\d{5}$`. This only checks the format.
+- The password needs at least 12 characters and a matching confirmation. The name is required.
+- **Format errors** return `422` with Laravel's `message` and `errors`. These do not reveal whether an account exists.
+- **Otherwise** the response is always `202` `{ "message": "If this email can be used to register, a verification code has been sent to it." }`, whether or not the email or student number already has an account. For an existing account no code is sent. A pending registration is stored (hashed password, keyed code hash) and a six-digit code is emailed. No user row is created yet.
+- Registering again for the same email inside the 60-second cooldown changes nothing; after it, the pending registration is replaced and a new code is sent.
+- **Throttle:** 5 per minute and 20 per hour per client address, and 3 per hour per email. Exceeding it returns `429`.
+
+### `POST /api/v1/auth/register/verify`
+
+Body: `email`, `code` (six digits).
+
+- A correct code creates the student (role `student`, active) in one transaction, deletes the pending registration and returns `201` `{ "message": "Your account is ready. Sign in with your student number and password." }`. A `student_self_registered` activity entry is written.
+- Any other outcome returns `422` `{ "message": "The code is invalid or expired. Request a new code and try again." }`: wrong, expired or already used code, no pending registration, five failed attempts (the pending row is deleted), or an email or student number that was taken after the code was sent. A malformed code returns the usual `422` field error.
+- A code lives 15 minutes (`REGISTRATION_CODE_LIFETIME_MINUTES`) and works once. At most 5 wrong attempts are allowed (`REGISTRATION_MAX_VERIFY_ATTEMPTS`).
+- **Throttle:** 10 per minute and 60 per hour per client address, and 15 per hour per email.
+
+### `POST /api/v1/auth/register/resend`
+
+Body: `email`.
+
+- Always returns the same `202` message as register. If a pending registration exists and the 60-second cooldown (`REGISTRATION_RESEND_COOLDOWN_SECONDS`) has passed, a new code replaces the old one and the attempt count resets.
+- **Throttle:** 5 per minute and 20 per hour per client address, and 5 per hour per email.
+
+### Notes
+
+- Deleted students' emails and student numbers can register again ([ADR 015](../architecture/decisions/015-soft-delete-for-accounts.md)).
+- Codes are emailed with Laravel's mail transport. With `MAIL_MAILER=log` in local development the code appears in `storage/logs/laravel.log`; never use that mailer for real users. Codes and passwords are not written to logs or activity entries by the application.
+- Email verification proves the person has an MSEUF mailbox, **not** that the student number is theirs. Both the student and the staff domain are allowed. A roster check is the planned fix (ADR 016).
+- Expired pending registrations are removed by `php artisan registrations:prune`, scheduled hourly, and are ignored when looked up.
 
 ## Mobile password recovery
 
@@ -120,7 +162,7 @@ The gate must belong to the event venue; every staff ID must belong to a securit
 
 ### Administrator ticket issuance
 
-`POST /api/v1/admin/events/{event}/tickets` requires the administrator role and accepts `student_number` and `event_gate_id`. The student must already exist and the gate must be assigned to the event. The service enforces gate capacity, rejects duplicate active tickets, and permits reissue of a revoked ticket with a new secret. It increments the event configuration version and records a change log. Its 201 response contains ticket identity/status and the new configuration version, but no TOTP secret.
+`POST /api/v1/admin/events/{event}/tickets` requires the administrator role and accepts `student_number` and `event_gate_id`. The student must already exist and the gate must be assigned to the event. The service enforces gate capacity, rejects duplicate active tickets, and permits reissue of a revoked ticket with a new secret. It increments the event configuration version and records a change log. Its 201 response contains ticket identity/status, the student's `student_number`, `student_name` and `student_email`, and the new configuration version, but no TOTP secret. The event ticket roster (`GET /api/v1/admin/events/{event}/tickets`) and the revoke response include `student.email` next to `student.name` and `student.student_number`. These were added without renaming or removing fields, so an administrator can see who registered under a student number.
 
 ### Scanner sync proof and outcomes
 
