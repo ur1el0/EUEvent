@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\DeleteStudentRequest;
 use App\Http\Requests\Api\V1\IndexAdminStudentRequest;
 use App\Http\Requests\Api\V1\StoreAdminStudentRequest;
 use App\Http\Resources\Api\V1\StudentAccountResource;
 use App\Models\User;
+use App\Services\AdminAccountDeletionService;
 use App\Services\AdminStudentManagementService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Response;
 
 class AdminStudentController extends Controller
 {
@@ -42,5 +45,21 @@ class AdminStudentController extends Controller
         return response()->json([
             'student' => (new StudentAccountResource($student))->resolve($request),
         ], 201)->header('Cache-Control', 'private, no-store');
+    }
+
+    /** Soft deletes the account and revokes its active tickets. A repeat request also returns 204. */
+    public function destroy(
+        DeleteStudentRequest $request,
+        User $student,
+        AdminAccountDeletionService $deletion,
+    ): Response {
+        abort_unless($student->isStudent(), 404);
+
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 403);
+
+        $deletion->deleteStudent($student, $actor);
+
+        return response()->noContent();
     }
 }

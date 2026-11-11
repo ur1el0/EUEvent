@@ -3,14 +3,17 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\DeleteSecurityStaffRequest;
 use App\Http\Requests\Api\V1\SetSecurityStaffStatusRequest;
 use App\Http\Requests\Api\V1\StoreSecurityStaffRequest;
 use App\Http\Resources\Api\V1\SecurityStaffResource;
 use App\Models\AdminActivityLog;
 use App\Models\User;
+use App\Services\AdminAccountDeletionService;
 use App\Services\AdminSecurityStaffAccessService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 
 class AdminSecurityStaffController extends Controller
@@ -79,5 +82,21 @@ class AdminSecurityStaffController extends Controller
         return response()->json([
             'staff' => (new SecurityStaffResource($updatedStaff))->resolve($request),
         ]);
+    }
+
+    /** Soft deletes the account. A repeat request on an already deleted account also returns 204. */
+    public function destroy(
+        DeleteSecurityStaffRequest $request,
+        User $staff,
+        AdminAccountDeletionService $deletion,
+    ): Response {
+        abort_unless($staff->isSecurityStaff(), 404);
+
+        $actor = $request->user();
+        abort_unless($actor instanceof User, 403);
+
+        $deletion->deleteSecurityStaff($staff, $actor);
+
+        return response()->noContent();
     }
 }

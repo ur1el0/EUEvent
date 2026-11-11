@@ -9,6 +9,8 @@ use App\Http\Controllers\Api\V1\AdminEventTicketController;
 use App\Http\Controllers\Api\V1\AdminMetricsController;
 use App\Http\Controllers\Api\V1\AdminSecurityStaffController;
 use App\Http\Controllers\Api\V1\AdminStudentController;
+use App\Http\Controllers\Api\V1\AdminVenueController;
+use App\Http\Controllers\Api\V1\AdminVenueGateController;
 use App\Http\Controllers\Api\V1\AssignedGatesController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\GateManifestController;
@@ -55,7 +57,23 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/students', [AdminStudentController::class, 'index']);
         Route::post('/students', [AdminStudentController::class, 'store'])
             ->middleware('throttle:10,1');
+        Route::get('/venues', [AdminVenueController::class, 'index']);
+        Route::post('/venues', [AdminVenueController::class, 'store']);
+        Route::patch('/venues/{venue}', [AdminVenueController::class, 'update'])
+            ->whereNumber('venue');
+        Route::post('/venues/{venue}/gates', [AdminVenueGateController::class, 'store'])
+            ->whereNumber('venue');
+        Route::patch('/venues/{venue}/gates/{gate}', [AdminVenueGateController::class, 'update'])
+            ->whereNumber('venue')
+            ->whereNumber('gate')
+            ->scopeBindings();
+        Route::delete('/students/{student}', [AdminStudentController::class, 'destroy'])
+            ->whereNumber('student')
+            ->withTrashed();
         Route::get('/security-staff', [AdminSecurityStaffController::class, 'index']);
+        Route::delete('/security-staff/{staff}', [AdminSecurityStaffController::class, 'destroy'])
+            ->whereNumber('staff')
+            ->withTrashed();
         Route::post('/security-staff', [AdminSecurityStaffController::class, 'store'])
             ->middleware('throttle:10,1');
         Route::patch('/security-staff/{staff}/status', [AdminSecurityStaffController::class, 'updateStatus'])

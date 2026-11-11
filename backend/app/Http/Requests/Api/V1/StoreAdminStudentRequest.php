@@ -5,6 +5,7 @@ namespace App\Http\Requests\Api\V1;
 use App\Models\User;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreAdminStudentRequest extends FormRequest
 {
@@ -43,8 +44,8 @@ class StoreAdminStudentRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'student_number' => ['required', 'string', 'max:32', 'unique:users,student_number'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'student_number' => ['required', 'string', 'max:32', Rule::unique('users', 'student_number')->whereNull('deleted_at')],
+            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->whereNull('deleted_at')],
             'password' => ['required', 'string', 'min:12', 'confirmed'],
         ];
     }
