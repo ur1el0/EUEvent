@@ -70,6 +70,7 @@ class AdminActivityLogService
                 'security_staff_deactivated',
                 'security_staff_deleted',
                 'student_deleted',
+                'student_self_registered',
                 'venue_created',
                 'venue_updated',
                 'venue_gate_created',

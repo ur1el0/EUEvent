@@ -30,6 +30,8 @@ class AdminActivityLog extends Model
 
     public const ACTION_STUDENT_DELETED = 'student_deleted';
 
+    public const ACTION_STUDENT_SELF_REGISTERED = 'student_self_registered';
+
     public const ACTION_VENUE_CREATED = 'venue_created';
 
     public const ACTION_VENUE_UPDATED = 'venue_updated';
