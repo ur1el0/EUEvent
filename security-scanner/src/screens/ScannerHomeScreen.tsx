@@ -28,6 +28,7 @@ import {
 import { countPendingScans } from '../services/offlineScanQueue';
 import { syncPendingScans } from '../services/scanSync';
 import { GateScanModal } from './GateScanModal';
+import { ChangePasswordButton } from '../components/ChangePasswordButton';
 import { colors, fonts } from '../theme';
 
 export function ScannerHomeScreen() {
@@ -210,6 +211,7 @@ export function ScannerHomeScreen() {
           <Pressable onPress={() => router.push('/server-settings')} accessibilityRole="button" accessibilityLabel="Server settings" style={styles.iconButton}>
             <Settings2 size={18} color={colors.muted} />
           </Pressable>
+          <ChangePasswordButton />
           <Pressable onPress={() => void signOut()} disabled={isSigningOut} accessibilityRole="button" accessibilityLabel="Sign out" style={styles.iconButton}>
             {isSigningOut ? <ActivityIndicator color={colors.muted} /> : <LogOut size={18} color={colors.muted} />}
           </Pressable>

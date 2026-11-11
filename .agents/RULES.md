@@ -26,5 +26,6 @@ Use these project notes together with the source code and tests. Older files und
 
 - [ADR 012: TOTP and screenshot replay boundary](../architecture/decisions/012-current-step-totp-and-replay-boundary.md)
 - [ADR 013: manual exception procedure without a PIN override](../architecture/decisions/013-manual-exception-procedure-without-pin-override.md)
+- [ADR 014: offline manifest freshness policy](../architecture/decisions/014-offline-manifest-freshness-policy.md) (proposed thresholds, pending team approval)
 
 Use code, migrations, and tests as the live specification. Do not describe a planned or superseded design as an implemented feature.

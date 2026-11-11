@@ -16,6 +16,7 @@ import { fetchStudentTickets, type StudentTicket } from '../services/studentTick
 import { loadStudentTicketCache, saveStudentTicketCache } from '../services/studentTicketStorage';
 import { createRotatingTicketCode, createTicketQrPayload, type RotatingTicketCode } from '../services/totp';
 import { useSecuritySession } from '../hooks/useSecuritySession';
+import { ChangePasswordButton } from '../components/ChangePasswordButton';
 import { colors, fonts } from '../theme';
 import { CloudOff, LogOut, RefreshCw, TicketCheck } from 'lucide-react-native';
 
@@ -100,6 +101,7 @@ export function StudentTicketsScreen() {
           <Pressable onPress={() => void loadTickets(true)} accessibilityRole="button" accessibilityLabel="Refresh tickets" style={styles.iconButton}>
             <RefreshCw size={18} color={colors.muted} />
           </Pressable>
+          <ChangePasswordButton />
           <Pressable onPress={() => void signOut()} disabled={isSigningOut} accessibilityRole="button" accessibilityLabel="Sign out" style={styles.iconButton}>
             {isSigningOut ? <ActivityIndicator color={colors.muted} /> : <LogOut size={18} color={colors.muted} />}
           </Pressable>

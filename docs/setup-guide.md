@@ -243,4 +243,5 @@ Expo Go needs the Metro development server to load the JavaScript app. An API-on
 - [Expo Go and scanner preparation](../security-scanner/README.md)
 - [Presentation walkthrough and fault scenarios](presentation/README.md)
 - [API contract](api.md)
+- [Event-day offline operations runbook](event-day-runbook.md)
 - [System architecture](architecture.md)
