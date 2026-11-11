@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSecuritySession } from './useSecuritySession';
 import { ApiError } from '../services/apiClient';
 import { fetchStudentTickets, type StudentTicket } from '../services/studentTickets';
+import { getSignOutWarning } from '../services/signOutWarning';
 import { loadStudentTicketCache, saveStudentTicketCache } from '../services/studentTicketStorage';
 import { sortTicketsForDisplay } from '../services/ticketStatus';
 
@@ -15,6 +16,7 @@ export function useStudentTickets() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [isConfirmingSignOut, setIsConfirmingSignOut] = useState(false);
 
   const loadTickets = useCallback(async (showRefresh = false) => {
     if (!token || !user || user.role !== 'student') {
@@ -60,10 +62,12 @@ export function useStudentTickets() {
     void Promise.resolve().then(() => loadTickets());
   }, [loadTickets]);
 
-  async function signOut() {
+  // Signing out deletes the saved tickets on this phone, so it always asks first.
+  async function confirmSignOut() {
     setIsSigningOut(true);
     await session.signOut();
     setIsSigningOut(false);
+    setIsConfirmingSignOut(false);
   }
 
   const sortedTickets = useMemo(() => sortTicketsForDisplay(tickets), [tickets]);
@@ -77,6 +81,12 @@ export function useStudentTickets() {
     isRefreshing,
     isSigningOut,
     refresh: () => void loadTickets(true),
-    signOut: () => void signOut(),
+    signOut: {
+      isConfirming: isConfirmingSignOut,
+      warning: getSignOutWarning(isOffline),
+      request: () => setIsConfirmingSignOut(true),
+      cancel: () => setIsConfirmingSignOut(false),
+      confirm: () => void confirmSignOut(),
+    },
   };
 }

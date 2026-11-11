@@ -6,7 +6,7 @@ import { TicketPassFullScreen } from './TicketPassFullScreen';
 import { Button } from '../ui/Button';
 import { useTotpTicket } from '../../hooks/useTotpTicket';
 import type { StudentTicket } from '../../services/studentTickets';
-import { canShowTicketPass } from '../../services/ticketStatus';
+import { canShowTicketPass, getTicketStatusLabel } from '../../services/ticketStatus';
 import { colors, fonts } from '../../theme';
 
 export function TicketCard({ ticket }: { ticket: StudentTicket }) {
@@ -17,11 +17,7 @@ export function TicketCard({ ticket }: { ticket: StudentTicket }) {
   const eventSchedule = Number.isNaN(eventDate.getTime())
     ? 'Schedule unavailable'
     : new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(eventDate);
-  const statusText = ticket.status === 'claimed'
-    ? 'Used'
-    : ticket.status === 'revoked'
-      ? 'Revoked'
-      : ticket.event.status.replace('_', ' ');
+  const statusText = getTicketStatusLabel(ticket);
 
   return (
     <View style={styles.ticketCard}>
@@ -56,7 +52,6 @@ export function TicketCard({ ticket }: { ticket: StudentTicket }) {
                 <QRCode value={qrPayload} size={202} color={colors.background} backgroundColor="#FFFFFF" />
               </View>
               <Text style={styles.qrHelp}>Show this code to event security</Text>
-              <Text style={styles.rotatingCode}>{rotatingCode.code}</Text>
               <View style={styles.timerRow}>
                 <View style={styles.timerTrack}>
                   <View style={[styles.timerFill, { width: ((secondsRemaining / 30) * 100).toFixed(2) + '%' as `${number}%` }]} />
@@ -124,7 +119,7 @@ const styles = StyleSheet.create({
   ticketStatus: { borderRadius: 999, paddingHorizontal: 9, paddingVertical: 6 },
   ticketStatusReady: { backgroundColor: '#123D32' },
   ticketStatusWaiting: { backgroundColor: '#49340E' },
-  ticketStatusText: { fontFamily: fonts.bodyBold, fontSize: 8, textTransform: 'uppercase' },
+  ticketStatusText: { fontFamily: fonts.bodyBold, fontSize: 12 },
   ticketStatusTextReady: { color: colors.green },
   ticketStatusTextWaiting: { color: colors.gold },
   ticketDetails: { flexDirection: 'row', gap: 24, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12 },
@@ -134,7 +129,6 @@ const styles = StyleSheet.create({
   qrArea: { alignItems: 'center', borderTopWidth: 1, borderTopColor: colors.border, padding: 17 },
   qrFrame: { minWidth: 236, minHeight: 236, alignItems: 'center', justifyContent: 'center', borderRadius: 21, padding: 16, backgroundColor: '#FFFFFF' },
   qrHelp: { color: colors.muted, fontFamily: fonts.bodyRegular, fontSize: 10, marginTop: 9 },
-  rotatingCode: { color: colors.text, fontFamily: fonts.headingStrong, fontSize: 28, letterSpacing: 5, marginTop: 6 },
   timerRow: { width: '100%', flexDirection: 'row', alignItems: 'center', gap: 9, marginTop: 12 },
   timerTrack: { height: 6, flex: 1, overflow: 'hidden', borderRadius: 999, backgroundColor: colors.surfaceRaised },
   timerFill: { height: '100%', borderRadius: 999, backgroundColor: colors.gold },

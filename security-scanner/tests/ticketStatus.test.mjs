@@ -3,8 +3,11 @@ import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 import ts from 'typescript';
 
-const { canShowTicketPass, sortTicketsForDisplay } = await loadTypeScriptModule(
+const { canShowTicketPass, getTicketStatusLabel, sortTicketsForDisplay } = await loadTypeScriptModule(
   new URL('../src/services/ticketStatus.ts', import.meta.url),
+);
+const { getSignOutWarning } = await loadTypeScriptModule(
+  new URL('../src/services/signOutWarning.ts', import.meta.url),
 );
 
 const SECRET = '0123456789abcdef0123456789abcdef01234567';
@@ -51,6 +54,35 @@ test('sorting returns a new array and leaves the cached order alone', () => {
 
   assert.notEqual(sorted, tickets);
   assert.deepEqual(tickets.map((ticket) => ticket.id), [1, 2]);
+});
+
+test('every event status gets a friendly label instead of the raw API word', () => {
+  const labels = ['draft', 'scheduled', 'in_progress', 'postponed', 'cancelled', 'completed']
+    .map((eventStatus) => getTicketStatusLabel(makeTicket({ eventStatus })));
+
+  assert.deepEqual(labels, ['Not scheduled yet', 'Entry opens soon', 'Entry open', 'Postponed', 'Cancelled', 'Ended']);
+});
+
+test('a used or revoked ticket shows that status whatever the event status is', () => {
+  assert.equal(getTicketStatusLabel(makeTicket({ status: 'claimed', eventStatus: 'in_progress' })), 'Used');
+  assert.equal(getTicketStatusLabel(makeTicket({ status: 'revoked', eventStatus: 'scheduled' })), 'Revoked');
+});
+
+test('signing out always says the saved tickets are deleted from this phone', () => {
+  const online = getSignOutWarning(false);
+
+  assert.match(online.message, /deletes the tickets saved on this phone/);
+  assert.equal(online.offlineWarning, null);
+  assert.equal(online.confirmLabel, 'Sign out');
+});
+
+test('signing out while offline adds the stronger no-connection warning', () => {
+  const offline = getSignOutWarning(true);
+
+  assert.equal(offline.title, 'Sign out while offline?');
+  assert.match(offline.message, /deletes the tickets saved on this phone/);
+  assert.equal(offline.offlineWarning, 'You can’t sign back in without a connection; you’ll lose your ticket on this phone until then.');
+  assert.equal(offline.confirmLabel, 'Sign out anyway');
 });
 
 async function loadTypeScriptModule(sourceUrl) {

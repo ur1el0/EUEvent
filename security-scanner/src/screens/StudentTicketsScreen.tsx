@@ -1,7 +1,7 @@
+import { router } from 'expo-router';
 import {
   ActivityIndicator,
   Image,
-  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -9,14 +9,16 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CloudOff, LogOut, RefreshCw, TicketCheck } from 'lucide-react-native';
-import { ChangePasswordButton } from '../components/ChangePasswordButton';
+import { CloudOff, KeyRound, LogOut, RefreshCw, TicketCheck } from 'lucide-react-native';
 import { TicketCard } from '../components/student/TicketCard';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
+import { IconLabelButton } from '../components/ui/IconLabelButton';
 import { useStudentTickets } from '../hooks/useStudentTickets';
 import { colors, fonts } from '../theme';
 
 export function StudentTicketsScreen() {
   const { firstName, tickets, message, isOffline, isLoading, isRefreshing, isSigningOut, refresh, signOut } = useStudentTickets();
+  const { warning } = signOut;
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -33,15 +35,11 @@ export function StudentTicketsScreen() {
             <Text style={styles.brandCaption}>STUDENT TICKETS</Text>
           </View>
         </View>
-        <View style={styles.headerActions}>
-          <Pressable onPress={refresh} accessibilityRole="button" accessibilityLabel="Refresh tickets" style={styles.iconButton}>
-            <RefreshCw size={18} color={colors.muted} />
-          </Pressable>
-          <ChangePasswordButton />
-          <Pressable onPress={signOut} disabled={isSigningOut} accessibilityRole="button" accessibilityLabel="Sign out" style={styles.iconButton}>
-            {isSigningOut ? <ActivityIndicator color={colors.muted} /> : <LogOut size={18} color={colors.muted} />}
-          </Pressable>
-        </View>
+      </View>
+      <View style={styles.headerActions}>
+        <IconLabelButton icon={RefreshCw} label="Refresh" tone="muted" onPress={refresh} accessibilityLabel="Refresh tickets" />
+        <IconLabelButton icon={KeyRound} label="Password" tone="muted" onPress={() => router.push('/change-password')} accessibilityLabel="Change password" />
+        <IconLabelButton icon={LogOut} label="Sign out" tone="muted" onPress={signOut.request} />
       </View>
 
       <View style={styles.greeting}>
@@ -92,13 +90,21 @@ export function StudentTicketsScreen() {
 
       <View style={styles.securityNote}>
         <View style={styles.securityNoteIcon}><TicketCheck size={16} color={colors.gold} /></View>
-        <View style={styles.securityNoteCopy}>
-          <Text style={styles.securityNoteTitle}>Your pass refreshes every 30 seconds</Text>
-          <Text style={styles.securityNoteBody}>The rotating QR is generated on this phone from a secret saved in secure device storage. Keep your screen brightness up at the gate.</Text>
-        </View>
+        <Text style={styles.securityNoteBody}>Your QR code changes every 30 seconds, so always show the live pass from this app.</Text>
       </View>
       <Text style={styles.footer}>EUEvent · Student entry pass</Text>
       </ScrollView>
+      <ConfirmDialog
+        visible={signOut.isConfirming}
+        title={warning.title}
+        message={warning.message}
+        warning={warning.offlineWarning}
+        confirmLabel={warning.confirmLabel}
+        destructive
+        busy={isSigningOut}
+        onConfirm={signOut.confirm}
+        onCancel={signOut.cancel}
+      />
     </SafeAreaView>
   );
 }
@@ -106,14 +112,13 @@ export function StudentTicketsScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 32 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 30 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   logo: { width: 42, height: 42, borderRadius: 13 },
   wordmark: { color: colors.text, fontFamily: fonts.headingStrong, fontSize: 17, letterSpacing: 0.3 },
   wordmarkGold: { color: colors.gold },
   brandCaption: { color: colors.muted, fontFamily: fonts.bodyBold, fontSize: 8, letterSpacing: 1.45 },
-  headerActions: { flexDirection: 'row', gap: 8 },
-  iconButton: { width: 42, height: 42, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  headerActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginLeft: -8, marginBottom: 20 },
   greeting: { marginBottom: 15 },
   eyebrow: { color: colors.gold, fontFamily: fonts.bodyBold, fontSize: 10, letterSpacing: 1.7, marginBottom: 5 },
   title: { color: colors.text, fontFamily: fonts.headingStrong, fontSize: 34, lineHeight: 39 },
@@ -137,10 +142,8 @@ const styles = StyleSheet.create({
   emptyIcon: { width: 50, height: 50, alignItems: 'center', justifyContent: 'center', borderRadius: 17, backgroundColor: colors.surfaceRaised, marginBottom: 11 },
   emptyTitle: { color: colors.text, fontFamily: fonts.heading, fontSize: 19 },
   emptyText: { color: colors.muted, fontFamily: fonts.bodyRegular, fontSize: 11, lineHeight: 17, textAlign: 'center', marginTop: 5 },
-  securityNote: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: 14, borderRadius: 19, backgroundColor: '#33250D', borderWidth: 1, borderColor: '#6B5018', marginTop: 4 },
+  securityNote: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: 19, backgroundColor: '#33250D', borderWidth: 1, borderColor: '#6B5018', marginTop: 4 },
   securityNoteIcon: { width: 30, height: 30, borderRadius: 11, backgroundColor: '#49340E', alignItems: 'center', justifyContent: 'center' },
-  securityNoteCopy: { flex: 1, gap: 4 },
-  securityNoteTitle: { color: colors.gold, fontFamily: fonts.bodyBold, fontSize: 11 },
-  securityNoteBody: { color: '#E6D5AA', fontFamily: fonts.bodyRegular, fontSize: 9, lineHeight: 14 },
+  securityNoteBody: { flex: 1, color: '#E6D5AA', fontFamily: fonts.bodyStrong, fontSize: 13, lineHeight: 19 },
   footer: { color: colors.muted, fontFamily: fonts.bodyRegular, textAlign: 'center', fontSize: 10, marginTop: 22 },
 });
