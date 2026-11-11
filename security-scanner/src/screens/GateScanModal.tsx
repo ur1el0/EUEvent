@@ -116,10 +116,16 @@ export function GateScanModal({
             {result ? (
               <View style={[styles.resultCard, result.tone === 'success' ? styles.resultSuccess : result.tone === 'error' ? styles.resultError : styles.resultNeutral]}>
                 <View style={styles.resultHeading}>
-                  {isSyncing ? <ActivityIndicator color={result.tone === 'error' ? colors.red : colors.green} /> : <CheckCircle2 size={20} color={result.tone === 'error' ? colors.red : colors.green} />}
-                  <Text style={[styles.resultTitle, result.tone === 'error' && styles.resultTitleError]}>{isSyncing ? 'Syncing saved scans in background…' : result.title}</Text>
+                  <CheckCircle2 size={20} color={result.tone === 'error' ? colors.red : colors.green} />
+                  <Text style={[styles.resultTitle, result.tone === 'error' && styles.resultTitleError]}>{result.title}</Text>
                 </View>
                 <Text style={styles.resultDetail}>{result.detail}</Text>
+                {isSyncing ? (
+                  <View style={styles.syncLine} accessibilityLiveRegion="polite">
+                    <ActivityIndicator size="small" color={colors.muted} />
+                    <Text style={styles.syncLineText}>Syncing saved scans in the background…</Text>
+                  </View>
+                ) : null}
                 {!isScanning && !isProcessing ? (
                   <Pressable onPress={scanner.scanNext} style={styles.scanNextButton}><Text style={styles.scanNextText}>Scan next ticket</Text></Pressable>
                 ) : null}
@@ -175,6 +181,8 @@ const styles = StyleSheet.create({
   resultTitle: { flex: 1, color: colors.green, fontFamily: fonts.bodyBold, fontSize: 13 },
   resultTitleError: { color: colors.red },
   resultDetail: { color: colors.text, fontFamily: fonts.bodyRegular, fontSize: 11, lineHeight: 17, marginTop: 8 },
+  syncLine: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 },
+  syncLineText: { color: colors.muted, fontFamily: fonts.bodyRegular, fontSize: 12 },
   scanNextButton: { alignSelf: 'flex-start', paddingHorizontal: 13, paddingVertical: 9, borderRadius: 12, backgroundColor: colors.gold, marginTop: 12 },
   scanNextText: { color: colors.background, fontFamily: fonts.bodyBold, fontSize: 11 },
   footer: { marginTop: 'auto', paddingTop: 17, borderTopWidth: 1, borderTopColor: colors.border },
