@@ -1,4 +1,3 @@
-import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -10,84 +9,21 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import QRCode from 'react-native-qrcode-svg';
-import { ApiError } from '../services/apiClient';
-import { fetchStudentTickets, type StudentTicket } from '../services/studentTickets';
-import { loadStudentTicketCache, saveStudentTicketCache } from '../services/studentTicketStorage';
-import { createRotatingTicketCode, createTicketQrPayload, type RotatingTicketCode } from '../services/totp';
-import { useSecuritySession } from '../hooks/useSecuritySession';
-import { ChangePasswordButton } from '../components/ChangePasswordButton';
-import { colors, fonts } from '../theme';
 import { CloudOff, LogOut, RefreshCw, TicketCheck } from 'lucide-react-native';
+import { ChangePasswordButton } from '../components/ChangePasswordButton';
+import { TicketCard } from '../components/student/TicketCard';
+import { useStudentTickets } from '../hooks/useStudentTickets';
+import { colors, fonts } from '../theme';
 
 export function StudentTicketsScreen() {
-  const session = useSecuritySession();
-  const { token, serverUrl, user } = session;
-  const [tickets, setTickets] = useState<StudentTicket[]>([]);
-  const [message, setMessage] = useState('');
-  const [isOffline, setIsOffline] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isSigningOut, setIsSigningOut] = useState(false);
-
-  const loadTickets = useCallback(async (showRefresh = false) => {
-    if (!token || !user || user.role !== 'student') {
-      setIsLoading(false);
-      return;
-    }
-
-    setIsRefreshing(showRefresh);
-    setMessage('');
-    let cachedTickets: StudentTicket[] = [];
-
-    try {
-      cachedTickets = await loadStudentTicketCache(serverUrl, user.id);
-      setTickets(cachedTickets);
-    } catch {
-      cachedTickets = [];
-    }
-
-    try {
-      const freshTickets = await fetchStudentTickets(token);
-      setTickets(freshTickets);
-      setIsOffline(false);
-      await saveStudentTicketCache(serverUrl, user.id, freshTickets).catch(() => undefined);
-    } catch (cause) {
-      if (cause instanceof ApiError && (cause.status === 401 || cause.status === 403)) {
-        setMessage('This student account is no longer authorized. Sign in again to continue.');
-        await session.signOut();
-      } else if ((!(cause instanceof ApiError) || cause.status >= 500) && cachedTickets.length > 0) {
-        setTickets(cachedTickets);
-        setIsOffline(true);
-        setMessage('Event server unavailable. Showing tickets securely saved on this device.');
-      } else {
-        setIsOffline(false);
-        setMessage(cause instanceof Error ? cause.message : 'Could not load your tickets.');
-      }
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  }, [serverUrl, session, token, user]);
-
-  useEffect(() => {
-    void Promise.resolve().then(() => loadTickets());
-  }, [loadTickets]);
-
-  async function signOut() {
-    setIsSigningOut(true);
-    await session.signOut();
-    setIsSigningOut(false);
-  }
-
-  const firstName = user?.name.trim().split(/\s+/)[0] || 'there';
+  const { firstName, tickets, message, isOffline, isLoading, isRefreshing, isSigningOut, refresh, signOut } = useStudentTickets();
 
   return (
     <SafeAreaView style={styles.screen}>
       <ScrollView
       style={styles.screen}
       contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => void loadTickets(true)} tintColor={colors.gold} colors={[colors.gold]} />}
+      refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={refresh} tintColor={colors.gold} colors={[colors.gold]} />}
     >
       <View style={styles.header}>
         <View style={styles.brand}>
@@ -98,11 +34,11 @@ export function StudentTicketsScreen() {
           </View>
         </View>
         <View style={styles.headerActions}>
-          <Pressable onPress={() => void loadTickets(true)} accessibilityRole="button" accessibilityLabel="Refresh tickets" style={styles.iconButton}>
+          <Pressable onPress={refresh} accessibilityRole="button" accessibilityLabel="Refresh tickets" style={styles.iconButton}>
             <RefreshCw size={18} color={colors.muted} />
           </Pressable>
           <ChangePasswordButton />
-          <Pressable onPress={() => void signOut()} disabled={isSigningOut} accessibilityRole="button" accessibilityLabel="Sign out" style={styles.iconButton}>
+          <Pressable onPress={signOut} disabled={isSigningOut} accessibilityRole="button" accessibilityLabel="Sign out" style={styles.iconButton}>
             {isSigningOut ? <ActivityIndicator color={colors.muted} /> : <LogOut size={18} color={colors.muted} />}
           </Pressable>
         </View>
@@ -151,7 +87,7 @@ export function StudentTicketsScreen() {
           </Text>
         </View>
       ) : (
-        tickets.map((ticket) => <StudentTicketCard key={ticket.id} ticket={ticket} />)
+        tickets.map((ticket) => <TicketCard key={ticket.id} ticket={ticket} />)
       )}
 
       <View style={styles.securityNote}>
@@ -164,146 +100,6 @@ export function StudentTicketsScreen() {
       <Text style={styles.footer}>EUEvent · Student entry pass</Text>
       </ScrollView>
     </SafeAreaView>
-  );
-}
-
-function StudentTicketCard({ ticket }: { ticket: StudentTicket }) {
-  const [now, setNow] = useState(0);
-  const [storedCode, setStoredCode] = useState<(RotatingTicketCode & { ticketId: number; secret: string }) | null>(null);
-  const [storedCodeError, setStoredCodeError] = useState<{ ticketId: number; secret: string; step: number; message: string } | null>(null);
-
-  const isEventEntryOpen = ticket.event.status === 'scheduled' || ticket.event.status === 'in_progress';
-  const canDisplayPass = ticket.status === 'issued' && isEventEntryOpen && ticket.totp_secret !== null;
-  const timeStep = Math.floor(now / 30_000);
-  const secondsRemaining = 30 - Math.floor((now % 30_000) / 1000);
-
-  useEffect(() => {
-    const interval = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    let isCurrent = true;
-
-    if (!canDisplayPass || !ticket.totp_secret || timeStep === 0) {
-      return () => { isCurrent = false; };
-    }
-
-    void createRotatingTicketCode(ticket.totp_secret, timeStep * 30_000)
-      .then((code) => {
-        if (isCurrent) {
-          setStoredCode({ ...code, ticketId: ticket.id, secret: ticket.totp_secret! });
-        }
-      })
-      .catch((cause: unknown) => {
-        if (isCurrent) {
-          setStoredCodeError({
-            ticketId: ticket.id,
-            secret: ticket.totp_secret!,
-            step: timeStep,
-            message: cause instanceof Error ? cause.message : 'The rotating ticket code could not be created.',
-          });
-        }
-      });
-
-    return () => { isCurrent = false; };
-  }, [canDisplayPass, ticket.id, ticket.totp_secret, timeStep]);
-
-  const rotatingCode = storedCode?.ticketId === ticket.id
-    && storedCode.secret === ticket.totp_secret
-    && storedCode.step === timeStep
-    ? storedCode
-    : null;
-  const codeError = storedCodeError?.ticketId === ticket.id
-    && storedCodeError.secret === ticket.totp_secret
-    && storedCodeError.step === timeStep
-    ? storedCodeError.message
-    : '';
-  const qrPayload = rotatingCode
-    ? createTicketQrPayload(ticket.id, rotatingCode.step, rotatingCode.code)
-    : '';
-  const eventDate = new Date(ticket.event.starts_at);
-  const eventSchedule = Number.isNaN(eventDate.getTime())
-    ? 'Schedule unavailable'
-    : new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(eventDate);
-  const statusText = ticket.status === 'claimed'
-    ? 'Used'
-    : ticket.status === 'revoked'
-      ? 'Revoked'
-      : ticket.event.status.replace('_', ' ');
-
-  return (
-    <View style={styles.ticketCard}>
-      <View style={styles.ticketAccent} />
-      <View style={styles.ticketHeader}>
-        <View style={styles.ticketTitleGroup}>
-          <Text style={styles.ticketEyebrow}>{ticket.event.venue_name}</Text>
-          <Text style={styles.ticketEventName}>{ticket.event.name}</Text>
-          <Text style={styles.ticketSchedule}>{eventSchedule}</Text>
-        </View>
-        <View style={[styles.ticketStatus, canDisplayPass ? styles.ticketStatusReady : styles.ticketStatusWaiting]}>
-          <Text style={[styles.ticketStatusText, canDisplayPass ? styles.ticketStatusTextReady : styles.ticketStatusTextWaiting]}>{statusText}</Text>
-        </View>
-      </View>
-
-      <View style={styles.ticketDetails}>
-        <View style={styles.ticketDetail}>
-          <Text style={styles.ticketDetailLabel}>GATE</Text>
-          <Text style={styles.ticketDetailValue}>{ticket.gate.code} · {ticket.gate.name}</Text>
-        </View>
-        <View style={styles.ticketDetail}>
-          <Text style={styles.ticketDetailLabel}>TICKET</Text>
-          <Text style={styles.ticketDetailValue}>#{ticket.id.toString().padStart(6, '0')}</Text>
-        </View>
-      </View>
-
-      {canDisplayPass ? (
-        <View style={styles.qrArea}>
-          {rotatingCode && qrPayload ? (
-            <>
-              <View style={styles.qrFrame}>
-                <QRCode value={qrPayload} size={202} color={colors.background} backgroundColor="#FFFFFF" />
-              </View>
-              <Text style={styles.qrHelp}>Show this code to event security</Text>
-              <Text style={styles.rotatingCode}>{rotatingCode.code}</Text>
-              <View style={styles.timerRow}>
-                <View style={styles.timerTrack}>
-                  <View style={[styles.timerFill, { width: ((secondsRemaining / 30) * 100).toFixed(2) + '%' as `${number}%` }]} />
-                </View>
-                <Text style={styles.timerText}>Refreshes in {secondsRemaining}s</Text>
-              </View>
-            </>
-          ) : (
-            <View style={styles.qrLoading}>
-              <ActivityIndicator color={colors.goldDeep} />
-              <Text style={styles.qrHelp}>{codeError || 'Preparing your secure ticket…'}</Text>
-            </View>
-          )}
-        </View>
-      ) : (
-        <View style={styles.passUnavailable}>
-          <TicketCheck size={19} color={colors.gold} />
-          <Text style={styles.passUnavailableTitle}>
-            {ticket.status === 'revoked'
-              ? 'This ticket is no longer valid'
-              : ticket.status === 'claimed'
-                ? 'This ticket has already been used'
-                : ticket.event.status === 'cancelled'
-                ? 'This event was cancelled'
-                : ticket.event.status === 'completed'
-                  ? 'This event has ended'
-                  : 'Pass available when event is scheduled'}
-          </Text>
-          <Text style={styles.passUnavailableCopy}>
-            {ticket.status === 'claimed'
-              ? 'This entry has been recorded. Contact event staff if you believe this is a mistake.'
-              : ticket.event.status === 'draft' || ticket.event.status === 'postponed'
-              ? 'Your ticket stays on this account. Check again after the administrator updates the event.'
-              : 'Contact the event administrator if you think this status is incorrect.'}
-          </Text>
-        </View>
-      )}
-    </View>
   );
 }
 
@@ -341,35 +137,6 @@ const styles = StyleSheet.create({
   emptyIcon: { width: 50, height: 50, alignItems: 'center', justifyContent: 'center', borderRadius: 17, backgroundColor: colors.surfaceRaised, marginBottom: 11 },
   emptyTitle: { color: colors.text, fontFamily: fonts.heading, fontSize: 19 },
   emptyText: { color: colors.muted, fontFamily: fonts.bodyRegular, fontSize: 11, lineHeight: 17, textAlign: 'center', marginTop: 5 },
-  ticketCard: { overflow: 'hidden', borderRadius: 23, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, marginBottom: 14 },
-  ticketAccent: { height: 4, backgroundColor: colors.gold },
-  ticketHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 9, paddingHorizontal: 16, paddingTop: 16 },
-  ticketTitleGroup: { flex: 1, gap: 4 },
-  ticketEyebrow: { color: colors.gold, fontFamily: fonts.bodyBold, fontSize: 9, letterSpacing: 1.1, textTransform: 'uppercase' },
-  ticketEventName: { color: colors.text, fontFamily: fonts.headingStrong, fontSize: 22, lineHeight: 25 },
-  ticketSchedule: { color: colors.muted, fontFamily: fonts.bodyRegular, fontSize: 10 },
-  ticketStatus: { borderRadius: 999, paddingHorizontal: 9, paddingVertical: 6 },
-  ticketStatusReady: { backgroundColor: '#123D32' },
-  ticketStatusWaiting: { backgroundColor: '#49340E' },
-  ticketStatusText: { fontFamily: fonts.bodyBold, fontSize: 8, textTransform: 'uppercase' },
-  ticketStatusTextReady: { color: colors.green },
-  ticketStatusTextWaiting: { color: colors.gold },
-  ticketDetails: { flexDirection: 'row', gap: 24, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12 },
-  ticketDetail: { gap: 3 },
-  ticketDetailLabel: { color: colors.muted, fontFamily: fonts.bodyBold, fontSize: 8, letterSpacing: 1 },
-  ticketDetailValue: { color: colors.text, fontFamily: fonts.bodyStrong, fontSize: 11 },
-  qrArea: { alignItems: 'center', borderTopWidth: 1, borderTopColor: colors.border, padding: 17 },
-  qrFrame: { minWidth: 236, minHeight: 236, alignItems: 'center', justifyContent: 'center', borderRadius: 21, padding: 16, backgroundColor: '#FFFFFF' },
-  qrHelp: { color: colors.muted, fontFamily: fonts.bodyRegular, fontSize: 10, marginTop: 9 },
-  rotatingCode: { color: colors.text, fontFamily: fonts.headingStrong, fontSize: 28, letterSpacing: 5, marginTop: 6 },
-  timerRow: { width: '100%', flexDirection: 'row', alignItems: 'center', gap: 9, marginTop: 12 },
-  timerTrack: { height: 6, flex: 1, overflow: 'hidden', borderRadius: 999, backgroundColor: colors.surfaceRaised },
-  timerFill: { height: '100%', borderRadius: 999, backgroundColor: colors.gold },
-  timerText: { width: 86, color: colors.muted, fontFamily: fonts.bodyStrong, fontSize: 9, textAlign: 'right' },
-  qrLoading: { minHeight: 180, alignItems: 'center', justifyContent: 'center', gap: 5 },
-  passUnavailable: { alignItems: 'center', borderTopWidth: 1, borderTopColor: colors.border, paddingHorizontal: 18, paddingVertical: 22 },
-  passUnavailableTitle: { color: colors.text, fontFamily: fonts.bodyBold, fontSize: 13, textAlign: 'center', marginTop: 8 },
-  passUnavailableCopy: { maxWidth: 270, color: colors.muted, fontFamily: fonts.bodyRegular, fontSize: 10, lineHeight: 16, textAlign: 'center', marginTop: 5 },
   securityNote: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: 14, borderRadius: 19, backgroundColor: '#33250D', borderWidth: 1, borderColor: '#6B5018', marginTop: 4 },
   securityNoteIcon: { width: 30, height: 30, borderRadius: 11, backgroundColor: '#49340E', alignItems: 'center', justifyContent: 'center' },
   securityNoteCopy: { flex: 1, gap: 4 },
