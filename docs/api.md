@@ -125,6 +125,44 @@ The client encrypts queued records in SQLite, sends at most 50 per request, and 
 
 The current backend does **not** yet expose the full product API. Historical audit export/cursor pagination, and scanner heartbeat/pending-sync telemetry remain planned. The current activity endpoint is limited to the newest 100 matching records. Do not present the future capabilities as implemented. Do not copy the reference's `registrations`, `access_points`, `/me/tickets`, or `/staff/events/.../admissions` names without a deliberate schema and ADR review.
 
+
+## Planned administrator endpoints (not implemented)
+
+**Status: planned.** None of the routes in this section exist in `backend/routes/api.php` yet, and they are not part of the implemented route inventory above. The administrator dashboard (`admin-web`) is already written against them. Until the backend adds them, the server answers `404` or `405` and the dashboard shows "This feature isn't available on the server yet." It never fakes a success. All routes require a Sanctum bearer token and the `administrator` role and would use the `/api/v1` base path.
+
+### Delete a security staff account
+
+`DELETE /api/v1/admin/security-staff/{staff}`
+
+- **Behavior (soft delete):** the account is hidden from lists and can no longer sign in, its Sanctum tokens are deleted, and scan and assignment history is kept for audit. The change is recorded in `admin_activity_logs`. A scanner that is offline may keep using its saved ticket list until it reconnects, as with deactivation.
+- **Request:** no body.
+- **Success:** `204 No Content`. The dashboard treats any `2xx` as success and removes the row.
+- **Errors:** `401` no valid token; `403` not an administrator; `404` no such security staff account (or already deleted); `422` the target is not a security staff account.
+
+### Delete a student account
+
+`DELETE /api/v1/admin/students/{student}`
+
+- **Behavior (soft delete):** the account is hidden and can no longer sign in, and its tokens are deleted. Every active ticket (`issued`) is revoked in the same transaction, which increments the affected events' configuration versions and writes change-log and activity entries. Ticket and scan history is kept.
+- **Request:** no body. **Success:** `204 No Content`.
+- **Errors:** `401`, `403`, `404` (unknown or already deleted), `422` (the target is not a student account).
+
+### Venues and gates
+
+Venues and gates can be created and edited. There is no delete for either.
+
+| Method and path | Request body | Success response |
+| --- | --- | --- |
+| `GET /api/v1/admin/venues` | none | `200` `{ "venues": [{ "id", "name", "location_details", "gates": [{ "id", "code", "name" }] }] }` |
+| `POST /api/v1/admin/venues` | `{ "name", "location_details" }` | `201` the venue: `{ "id", "name", "location_details", "gates": [] }` |
+| `PATCH /api/v1/admin/venues/{venue}` | `{ "name"?, "location_details"? }` | `200` the updated venue |
+| `POST /api/v1/admin/venues/{venue}/gates` | `{ "code", "name" }` | `201` the gate: `{ "id", "code", "name" }` |
+| `PATCH /api/v1/admin/venues/{venue}/gates/{gate}` | `{ "code"?, "name"? }` | `200` the updated gate |
+
+- **Validation (proposed):** venue `name` required, up to 150 characters; `location_details` optional, up to 500 characters; gate `code` required, up to 32 characters and unique within its venue; gate `name` required, up to 150 characters. Validation failures return `422` with Laravel's `message` and `errors`, and the dashboard shows each field's error next to that field.
+- **Other errors:** `401`, `403`, `404` (unknown venue or a gate that does not belong to that venue).
+- **Relationship to existing routes:** `GET /api/v1/admin/event-options` already returns venues with their gates and must include a newly created venue or gate. After every successful change the dashboard refetches it so the new-event form shows the new venue without a page reload. Renaming or recoding a gate does not change tickets or manifests already issued for it.
+
 ## Rules for new endpoints
 
 1. **Document before wiring a screen.** Record method, path, role, assignment scope, request fields, response fields, status codes, and retry/cache behavior in the endpoint contract.
