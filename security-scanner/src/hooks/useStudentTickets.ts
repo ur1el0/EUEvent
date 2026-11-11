@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSecuritySession } from './useSecuritySession';
 import { ApiError } from '../services/apiClient';
 import { fetchStudentTickets, type StudentTicket } from '../services/studentTickets';
 import { loadStudentTicketCache, saveStudentTicketCache } from '../services/studentTicketStorage';
+import { sortTicketsForDisplay } from '../services/ticketStatus';
 
 /** Loads the student's tickets, falling back to the encrypted copy on this phone when offline. */
 export function useStudentTickets() {
@@ -65,9 +66,11 @@ export function useStudentTickets() {
     setIsSigningOut(false);
   }
 
+  const sortedTickets = useMemo(() => sortTicketsForDisplay(tickets), [tickets]);
+
   return {
     firstName: user?.name.trim().split(/\s+/)[0] || 'there',
-    tickets,
+    tickets: sortedTickets,
     message,
     isOffline,
     isLoading,

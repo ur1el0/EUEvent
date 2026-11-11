@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { TicketCheck } from 'lucide-react-native';
+import { TicketPassFullScreen } from './TicketPassFullScreen';
+import { Button } from '../ui/Button';
 import { useTotpTicket } from '../../hooks/useTotpTicket';
 import type { StudentTicket } from '../../services/studentTickets';
 import { canShowTicketPass } from '../../services/ticketStatus';
@@ -9,6 +12,7 @@ import { colors, fonts } from '../../theme';
 export function TicketCard({ ticket }: { ticket: StudentTicket }) {
   const canDisplayPass = canShowTicketPass(ticket);
   const { rotatingCode, qrPayload, codeError, secondsRemaining } = useTotpTicket(ticket, canDisplayPass);
+  const [isPassOpen, setIsPassOpen] = useState(false);
   const eventDate = new Date(ticket.event.starts_at);
   const eventSchedule = Number.isNaN(eventDate.getTime())
     ? 'Schedule unavailable'
@@ -59,6 +63,12 @@ export function TicketCard({ ticket }: { ticket: StudentTicket }) {
                 </View>
                 <Text style={styles.timerText}>Refreshes in {secondsRemaining}s</Text>
               </View>
+              <Button
+                label="Show my pass"
+                onPress={() => setIsPassOpen(true)}
+                accessibilityHint="Opens a full-screen QR code with brighter screen"
+                style={styles.showPass}
+              />
             </>
           ) : (
             <View style={styles.qrLoading}>
@@ -90,6 +100,15 @@ export function TicketCard({ ticket }: { ticket: StudentTicket }) {
           </Text>
         </View>
       )}
+      {canDisplayPass && isPassOpen ? (
+        <TicketPassFullScreen
+          ticket={ticket}
+          qrPayload={qrPayload}
+          secondsRemaining={secondsRemaining}
+          codeError={codeError}
+          onClose={() => setIsPassOpen(false)}
+        />
+      ) : null}
     </View>
   );
 }
@@ -120,6 +139,7 @@ const styles = StyleSheet.create({
   timerTrack: { height: 6, flex: 1, overflow: 'hidden', borderRadius: 999, backgroundColor: colors.surfaceRaised },
   timerFill: { height: '100%', borderRadius: 999, backgroundColor: colors.gold },
   timerText: { width: 86, color: colors.muted, fontFamily: fonts.bodyStrong, fontSize: 9, textAlign: 'right' },
+  showPass: { alignSelf: 'stretch', marginTop: 16 },
   qrLoading: { minHeight: 180, alignItems: 'center', justifyContent: 'center', gap: 5 },
   passUnavailable: { alignItems: 'center', borderTopWidth: 1, borderTopColor: colors.border, paddingHorizontal: 18, paddingVertical: 22 },
   passUnavailableTitle: { color: colors.text, fontFamily: fonts.bodyBold, fontSize: 13, textAlign: 'center', marginTop: 8 },
