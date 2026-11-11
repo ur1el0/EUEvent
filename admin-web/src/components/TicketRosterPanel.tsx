@@ -10,6 +10,8 @@ interface EventTicket {
     id: number;
     name: string;
     student_number: string | null;
+    /** Sent by newer API versions. */
+    email?: string;
   };
   gate: {
     event_gate_id: number;
@@ -178,6 +180,7 @@ export function TicketRosterPanel({
                 <div className="ticket-roster-identity">
                   <strong>{ticket.student.name}</strong>
                   <span>{ticket.student.student_number ?? 'No student number'}</span>
+                  {ticket.student.email && <span>{ticket.student.email}</span>}
                   <span>{ticket.gate.code} · {ticket.gate.name}</span>
                 </div>
                 <span className={`event-status event-status--${ticket.status}`}>
