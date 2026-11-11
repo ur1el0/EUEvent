@@ -1,5 +1,6 @@
 import { GraduationCap, Loader2, Search, Trash2 } from 'lucide-react';
 import type { useStudents } from '../../hooks/useStudents';
+import { formatRegisteredDate } from '../../services/accountFormat';
 import type { StudentAccount } from '../../types/accounts';
 
 interface StudentDirectoryProps {
@@ -33,8 +34,12 @@ export function StudentDirectory({ directory, onDelete }: StudentDirectoryProps)
             {students.map((student) => (
               <li className="students-list-item" key={student.id}>
                 <span className="staff-avatar">{student.name.trim().slice(0, 1).toUpperCase()}</span>
-                <span className="staff-person-copy"><strong>{student.name}</strong><span>{student.email}</span></span>
-                <span className="student-number-badge">{student.student_number}</span>
+                <span className="staff-person-copy">
+                  <strong>{student.name}</strong>
+                  <span>{student.email}</span>
+                  <span className="student-registered">{formatRegisteredDate(student.created_at)}</span>
+                </span>
+                <span className="student-number-badge" aria-label={`Student number ${student.student_number}`}>{student.student_number}</span>
                 <button className="btn btn--compact btn--text-danger" type="button" onClick={() => onDelete(student)}
                   aria-label={`Delete ${student.name}`}>
                   <Trash2 size={14} /> Delete
@@ -56,7 +61,7 @@ export function StudentDirectory({ directory, onDelete }: StudentDirectoryProps)
         <div className="staff-empty-state">
           <span className="staff-empty-icon"><GraduationCap size={21} /></span>
           <strong>{activeSearch ? 'No matching students' : 'No student accounts yet'}</strong>
-          <p>{activeSearch ? 'Try a different name, email, or student number.' : 'Create an account before issuing the student’s event ticket.'}</p>
+          <p>{activeSearch ? 'Try a different name, email, or student number.' : 'Students appear here after they create their account in the mobile app.'}</p>
         </div>
       )}
     </section>

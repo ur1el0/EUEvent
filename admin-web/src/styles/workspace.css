@@ -50,6 +50,17 @@ input[aria-invalid="true"] { border-color: #b34335 !important; }
 .event-form .field-error { grid-column: 1 / -1; }
 .event-form--stacked { grid-template-columns: minmax(0, 1fr); }
 
+.info-note { display: flex; align-items: flex-start; gap: 10px; margin: 0; padding: 13px 17px; border: 1px solid #eadfdd; border-radius: 15px; color: #553431; background: #fff; font-size: 12px; line-height: 1.55; }
+.info-note svg { flex: 0 0 auto; margin-top: 1px; color: #744340; }
+.student-registered { color: #917d78 !important; font-size: 11px !important; }
+.lookup-note { display: flex; align-items: flex-start; gap: 8px; margin: 0; padding: 9px 11px; border-radius: 12px; font-size: 12px; line-height: 1.5; }
+.lookup-note svg { flex: 0 0 auto; margin-top: 2px; }
+.lookup-note--found { color: #17663c; background: #e8f6ed; }
+.lookup-note--missing { color: #805716; background: #fff7e7; }
+.lookup-note--checking { color: #806c68; background: #f5f1ef; }
+.lookup-note strong { color: inherit; }
+.event-form .lookup-note { grid-column: 1 / -1; }
+
 @media (max-width: 760px) {
   .event-form .form-actions { grid-column: 1; }
   .confirm-dialog__actions .btn { flex: 1 1 100%; }
