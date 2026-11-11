@@ -37,6 +37,13 @@ This document records the API conventions for this project and marks which route
 | `POST /api/v1/admin/students` | Administrator | Creates a student account with a server-assigned student role and hashed initial password. |
 | `GET /api/v1/admin/security-staff` | Administrator | Returns scanner staff accounts with active status. |
 | `PATCH /api/v1/admin/security-staff/{staff}/status` | Administrator | Activates/deactivates one security staff account. Deactivation revokes server-side API tokens and writes an admin activity record. A disconnected scanner cannot receive the change until it reconnects. |
+| `DELETE /api/v1/admin/security-staff/{staff}` | Administrator | Soft deletes a security staff account (see [Deleting accounts](#deleting-student-and-security-staff-accounts)). `204`; repeating it also returns `204`. |
+| `DELETE /api/v1/admin/students/{student}` | Administrator | Soft deletes a student account and revokes its active tickets. `204`; repeating it also returns `204`. |
+| `GET /api/v1/admin/venues` | Administrator | Lists venues with their gates. |
+| `POST /api/v1/admin/venues` | Administrator | Creates a venue. `201`. |
+| `PATCH /api/v1/admin/venues/{venue}` | Administrator | Updates a venue's name or location details. |
+| `POST /api/v1/admin/venues/{venue}/gates` | Administrator | Adds a gate to a venue. `201`. |
+| `PATCH /api/v1/admin/venues/{venue}/gates/{gate}` | Administrator | Updates a gate's code or name. |
 | `GET /api/v1/admin/activity-logs` | Administrator | Returns recent account, event-change, scan-decision, and anomaly activity with filters. |
 
 For exact response fields, inspect the matching Laravel controller and API Resource. The login response has `token` and `user`. `user` contains `id`, `student_number`, `name`, `email`, and `role`, and `GET /api/v1/auth/me` returns the same `user` object. `email` was added without renaming or removing any other field; a client talking to an older API may not receive it and must tolerate its absence. The response never contains a password, remember token, or other tokens, and it does not promise the extra `token_type`, `created_at`, or `student_id` fields shown in the reference. The metrics resource currently reports `pending_sync_estimate: null` because scanner heartbeat counts are not implemented. Clients must render this as unavailable, not zero.
@@ -57,7 +64,7 @@ On success the API stores the new password hash, rotates the remember token, del
 
 ## Security staff account status
 
-`PATCH /api/v1/admin/security-staff/{staff}/status` accepts `{ "is_active": true|false }`. Only an administrator may use it and the target must have the Security Staff role. Deactivation deletes the staff member's Sanctum tokens and records an `AdminActivityLog` action. It does not remove gate assignments or erase a disconnected phone's cached manifest. Re-activation allows a new login but does not restore deleted tokens.
+`PATCH /api/v1/admin/security-staff/{staff}/status` accepts `{ "is_active": true|false }`. Only an administrator may use it and the target must have the Security Staff role. Deactivation deletes the staff member's Sanctum tokens and records an `AdminActivityLog` action. It does not remove gate assignments or erase a disconnected phone's cached manifest. Re-activation allows a new login but does not restore deleted tokens. Deleting an account is a separate action; see [Deleting accounts](#deleting-student-and-security-staff-accounts).
 
 ## Administrator event setup contract
 
@@ -126,42 +133,41 @@ The client encrypts queued records in SQLite, sends at most 50 per request, and 
 The current backend does **not** yet expose the full product API. Historical audit export/cursor pagination, and scanner heartbeat/pending-sync telemetry remain planned. The current activity endpoint is limited to the newest 100 matching records. Do not present the future capabilities as implemented. Do not copy the reference's `registrations`, `access_points`, `/me/tickets`, or `/staff/events/.../admissions` names without a deliberate schema and ADR review.
 
 
-## Planned administrator endpoints (not implemented)
+## Deleting student and security staff accounts
 
-**Status: planned.** None of the routes in this section exist in `backend/routes/api.php` yet, and they are not part of the implemented route inventory above. The administrator dashboard (`admin-web`) is already written against them. Until the backend adds them, the server answers `404` or `405` and the dashboard shows "This feature isn't available on the server yet." It never fakes a success. All routes require a Sanctum bearer token and the `administrator` role and would use the `/api/v1` base path.
+Both routes require a Sanctum bearer token and the `administrator` role. They soft delete the account ([ADR 015](../architecture/decisions/015-soft-delete-for-accounts.md), status Proposed).
 
-### Delete a security staff account
+`DELETE /api/v1/admin/security-staff/{staff}` and `DELETE /api/v1/admin/students/{student}` take no body and return `204 No Content`.
 
-`DELETE /api/v1/admin/security-staff/{staff}`
+In one transaction the server deletes the account's Sanctum tokens and any pending password-reset token for its email, sets `deleted_at`, and writes one activity entry (`security_staff_deleted` or `student_deleted`). The account disappears from `GET /api/v1/admin/security-staff`, `GET /api/v1/admin/students` and the staff choices in `GET /api/v1/admin/event-options`, and can no longer sign in, use an old token, or receive or use a password reset.
 
-- **Behavior (soft delete):** the account is hidden from lists and can no longer sign in, its Sanctum tokens are deleted, and scan and assignment history is kept for audit. The change is recorded in `admin_activity_logs`. A scanner that is offline may keep using its saved ticket list until it reconnects, as with deactivation.
-- **Request:** no body.
-- **Success:** `204 No Content`. The dashboard treats any `2xx` as success and removes the row.
-- **Errors:** `401` no valid token; `403` not an administrator; `404` no such security staff account (or already deleted); `422` the target is not a security staff account.
+- **Staff:** gate assignments are not removed, because phones may hold offline manifests. A deleted staff member keeps existing assignments, and a gate configuration may include them unchanged, but a deleted account cannot be newly assigned (`422`). Scan logs and assignments still show the person's name.
+- **Students:** every `issued` or `claimed` ticket is revoked through the same service as the manual revoke endpoint, with the reason "Student account deleted by an administrator." Each revocation raises the event's configuration version and writes an event change log entry. Tickets and scan logs are never deleted; the ticket roster still shows the student's name and student number.
+- **Repeat requests:** deleting an already deleted account returns `204` and changes nothing, so it writes no second activity entry and revokes nothing again.
+- **Errors:** `401` no valid token; `403` not an administrator; `404` the id does not exist or belongs to the wrong role (a student id on the staff route, a staff or administrator id on the student route).
+- **Reuse:** the deleted account keeps its real email and student number. Uniqueness only applies to accounts that are not deleted, so a new account can register the same email or student number.
+- **Offline limit:** a scanner that is offline keeps its saved ticket list until it reconnects, and a deleted student's phone can keep showing a pass it already saved.
 
-### Delete a student account
+## Administrator venues and gates
 
-`DELETE /api/v1/admin/students/{student}`
-
-- **Behavior (soft delete):** the account is hidden and can no longer sign in, and its tokens are deleted. Every active ticket (`issued`) is revoked in the same transaction, which increments the affected events' configuration versions and writes change-log and activity entries. Ticket and scan history is kept.
-- **Request:** no body. **Success:** `204 No Content`.
-- **Errors:** `401`, `403`, `404` (unknown or already deleted), `422` (the target is not a student account).
-
-### Venues and gates
-
-Venues and gates can be created and edited. There is no delete for either.
+All routes require a Sanctum bearer token and the `administrator` role. Venues and gates can be created and edited, never deleted. Ids never change and gates are never removed, because events, tickets and offline scanner manifests refer to `venue_gates` by id. Each create or update that changes something writes an activity entry (`venue_created`, `venue_updated`, `venue_gate_created`, `venue_gate_updated`). An update that changes nothing writes none. Venues appear in `GET /api/v1/admin/event-options` as soon as they are created.
 
 | Method and path | Request body | Success response |
 | --- | --- | --- |
-| `GET /api/v1/admin/venues` | none | `200` `{ "venues": [{ "id", "name", "location_details", "gates": [{ "id", "code", "name" }] }] }` |
+| `GET /api/v1/admin/venues` | none | `200` `{ "venues": [{ "id", "name", "location_details", "gates": [{ "id", "code", "name" }] }] }`, ordered by name |
 | `POST /api/v1/admin/venues` | `{ "name", "location_details" }` | `201` the venue: `{ "id", "name", "location_details", "gates": [] }` |
-| `PATCH /api/v1/admin/venues/{venue}` | `{ "name"?, "location_details"? }` | `200` the updated venue |
+| `PATCH /api/v1/admin/venues/{venue}` | `{ "name"?, "location_details"? }`, at least one field | `200` the updated venue with its gates |
 | `POST /api/v1/admin/venues/{venue}/gates` | `{ "code", "name" }` | `201` the gate: `{ "id", "code", "name" }` |
-| `PATCH /api/v1/admin/venues/{venue}/gates/{gate}` | `{ "code"?, "name"? }` | `200` the updated gate |
+| `PATCH /api/v1/admin/venues/{venue}/gates/{gate}` | `{ "code"?, "name"? }`, at least one field | `200` the updated gate |
 
-- **Validation (proposed):** venue `name` required, up to 150 characters; `location_details` optional, up to 500 characters; gate `code` required, up to 32 characters and unique within its venue; gate `name` required, up to 150 characters. Validation failures return `422` with Laravel's `message` and `errors`, and the dashboard shows each field's error next to that field.
-- **Other errors:** `401`, `403`, `404` (unknown venue or a gate that does not belong to that venue).
-- **Relationship to existing routes:** `GET /api/v1/admin/event-options` already returns venues with their gates and must include a newly created venue or gate. After every successful change the dashboard refetches it so the new-event form shows the new venue without a page reload. Renaming or recoding a gate does not change tickets or manifests already issued for it.
+- **Validation (`422`, Laravel `message` and `errors`):**
+  - A venue `name` is required, up to 150 characters, and unique ignoring case. `location_details` is optional and up to 500 characters; an empty string is stored as `null`.
+  - A gate `code` is required, up to 32 characters, and unique within its venue ignoring case. A gate `name` is required and up to 120 characters.
+  - An update with none of its fields returns `422`.
+  - Text is trimmed before validation.
+- **Other errors:** `401`, `403`, and `404` for an unknown venue. `PATCH .../gates/{gate}` returns `404` when the gate belongs to a different venue.
+- **Not available:** `DELETE` on a venue or gate. The server answers `404` or `405`.
+- **Concurrency:** gate creation and updates lock the venue row, so two requests for the same code serialize and the existing `unique(venue_id, code)` index backs the check. Venue names are validated only; there is no unique index, so two simultaneous requests for the same new name could both succeed.
 
 ## Rules for new endpoints
 

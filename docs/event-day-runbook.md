@@ -90,6 +90,8 @@ The offline phone still holds the ticket as valid and can admit it. When the adm
 4. If the same person continues on a new phone, the administrator can reactivate the account later. Reactivation does not restore old tokens, so the person signs in again on the new phone.
 5. Scans still queued on a lost phone are lost unless the phone is recovered and synced with that account. Treat admissions from that gate during the gap as unconfirmed in the after-event review.
 
+**Deactivate, do not delete, for a lost phone.** The dashboard also offers **Delete** for security staff ([ADR 015](../architecture/decisions/015-soft-delete-for-accounts.md)). Delete is for someone who will not use the scanner again. It ends the account's sessions and hides it, like deactivation, but it cannot be undone from the dashboard and the person can no longer sign in to send scans still queued on a recovered phone. Deleting does not change the steps above: a disconnected phone keeps its saved ticket list until it reconnects, existing gate assignments stay, and the replacement is added the same way. If the same person will carry on, deactivate and later reactivate instead.
+
 ## Manual exception procedure
 
 This follows ADR 013. Use it only with the event lead's approval, for example when a gate scanner is unavailable or a case is not covered above.
