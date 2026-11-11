@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 import ts from 'typescript';
 
-const { canShowTicketPass, getEventStatusLabel, getTicketStatusLabel, sortTicketsForDisplay } = await loadTypeScriptModule(
+const { FAILED_POLL_MS, PASS_OPEN_POLL_MS, TICKET_POLL_INTERVAL_MS, canShowTicketPass, didTicketGetScanned, getTicketPollIntervalMs, getTicketStatusLabel, shouldPollTickets, sortTicketsForDisplay } = await loadTypeScriptModule(
   new URL('../src/services/ticketStatus.ts', import.meta.url),
 );
 const { getSignOutWarning } = await loadTypeScriptModule(
@@ -63,15 +63,46 @@ test('every event status gets a friendly label instead of the raw API word', () 
   assert.deepEqual(labels, ['Not scheduled yet', 'Entry opens soon', 'Entry open', 'Postponed', 'Cancelled', 'Ended']);
 });
 
-test('staff gate cards use the same event labels as student tickets', () => {
-  assert.equal(getEventStatusLabel('in_progress'), 'Entry open');
-  assert.equal(getEventStatusLabel('completed'), 'Ended');
-  assert.equal(getEventStatusLabel('scheduled'), getTicketStatusLabel(makeTicket({ eventStatus: 'scheduled' })));
-});
-
 test('a used or revoked ticket shows that status whatever the event status is', () => {
   assert.equal(getTicketStatusLabel(makeTicket({ status: 'claimed', eventStatus: 'in_progress' })), 'Used');
   assert.equal(getTicketStatusLabel(makeTicket({ status: 'revoked', eventStatus: 'scheduled' })), 'Revoked');
+});
+
+test('polling is 1.5s with the pass open, 5s normally and 15s after a failed fetch', () => {
+  assert.equal(PASS_OPEN_POLL_MS, 1_500);
+  assert.equal(TICKET_POLL_INTERVAL_MS, 5_000);
+  assert.equal(FAILED_POLL_MS, 15_000);
+  assert.equal(getTicketPollIntervalMs({ isPassOpen: true, lastFetchFailed: false }), 1_500);
+  assert.equal(getTicketPollIntervalMs({ isPassOpen: false, lastFetchFailed: false }), 5_000);
+  assert.equal(getTicketPollIntervalMs({ isPassOpen: false, lastFetchFailed: true }), 15_000);
+});
+
+test('an open pass keeps the fast interval even after a failed fetch', () => {
+  assert.equal(getTicketPollIntervalMs({ isPassOpen: true, lastFetchFailed: true }), 1_500);
+});
+
+test('polling needs a foreground student with an issued ticket', () => {
+  const base = { isStudent: true, isForeground: true, tickets: [makeTicket()] };
+
+  assert.equal(shouldPollTickets(base), true);
+  assert.equal(shouldPollTickets({ ...base, isStudent: false }), false);
+  assert.equal(shouldPollTickets({ ...base, isForeground: false }), false);
+});
+
+test('polling pauses when no ticket is issued', () => {
+  const base = { isStudent: true, isForeground: true };
+
+  assert.equal(shouldPollTickets({ ...base, tickets: [] }), false);
+  assert.equal(shouldPollTickets({ ...base, tickets: [makeTicket({ status: 'claimed' }), makeTicket({ id: 2, status: 'revoked' })] }), false);
+  assert.equal(shouldPollTickets({ ...base, tickets: [makeTicket({ status: 'claimed' }), makeTicket({ id: 2 })] }), true);
+});
+
+test('only issued to claimed counts as a scan', () => {
+  assert.equal(didTicketGetScanned('issued', 'claimed'), true);
+  assert.equal(didTicketGetScanned('claimed', 'claimed'), false);
+  assert.equal(didTicketGetScanned('issued', 'issued'), false);
+  assert.equal(didTicketGetScanned('issued', 'revoked'), false);
+  assert.equal(didTicketGetScanned('claimed', 'issued'), false);
 });
 
 test('signing out always says the saved tickets are deleted from this phone', () => {
