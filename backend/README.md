@@ -29,6 +29,24 @@ Set the local database values in `.env` before running migrations. Never commit 
 
 For a safe demo database isolated from Supabase, follow the [local presentation mode](#local-presentation-mode).
 
+### Seed a test student (local testing only)
+
+`LocalStudentSeeder` creates one student account (`student@euevent.test`, student number `2026-00001`) so you can sign in to the mobile app. It is **not** part of `php artisan db:seed` and runs only when you ask for it. It is for local testing only and must never be used in production or on a shared database.
+
+1. Set a password of at least 12 characters in your ignored `.env`. `.env.example` leaves it blank on purpose:
+
+   ```dotenv
+   LOCAL_STUDENT_PASSWORD=your-own-local-password
+   ```
+
+2. Run the seeder:
+
+   ```bash
+   php artisan db:seed --class=LocalStudentSeeder
+   ```
+
+The seeder refuses to run in the `production` environment and when the password is missing or shorter than 12 characters. If `student@euevent.test` already exists it changes nothing. Do not commit the password.
+
 ## Tests and quality checks
 
 From this directory:
