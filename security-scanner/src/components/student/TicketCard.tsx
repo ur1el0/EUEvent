@@ -1,18 +1,36 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { TicketCheck } from 'lucide-react-native';
 import { TicketPassFullScreen } from './TicketPassFullScreen';
+import { TicketScannedScreen } from './TicketScannedScreen';
 import { Button } from '../ui/Button';
 import { useTotpTicket } from '../../hooks/useTotpTicket';
 import type { StudentTicket } from '../../services/studentTickets';
-import { canShowTicketPass, getTicketStatusLabel } from '../../services/ticketStatus';
+import { canShowTicketPass, didTicketGetScanned, getTicketStatusLabel } from '../../services/ticketStatus';
 import { colors, fonts } from '../../theme';
 
-export function TicketCard({ ticket }: { ticket: StudentTicket }) {
+export function TicketCard({ ticket, onPassOpenChange }: { ticket: StudentTicket; onPassOpenChange?: (isOpen: boolean) => void }) {
   const canDisplayPass = canShowTicketPass(ticket);
   const { rotatingCode, qrPayload, codeError, secondsRemaining } = useTotpTicket(ticket, canDisplayPass);
   const [isPassOpen, setIsPassOpen] = useState(false);
+  const [isScannedShown, setIsScannedShown] = useState(false);
+  const previousStatus = useRef(ticket.status);
+
+  // Tell the screen when the full-screen pass is open so polling can speed up at the gate.
+  useEffect(() => {
+    onPassOpenChange?.(isPassOpen);
+    return () => onPassOpenChange?.(false);
+  }, [isPassOpen, onPassOpenChange]);
+
+  // Security scanned the pass while it was open full screen: swap the QR for the confirmation.
+  useEffect(() => {
+    if (didTicketGetScanned(previousStatus.current, ticket.status) && isPassOpen) {
+      setIsScannedShown(true);
+      setIsPassOpen(false);
+    }
+    previousStatus.current = ticket.status;
+  }, [ticket.status, isPassOpen]);
   const eventDate = new Date(ticket.event.starts_at);
   const eventSchedule = Number.isNaN(eventDate.getTime())
     ? 'Schedule unavailable'
@@ -104,6 +122,7 @@ export function TicketCard({ ticket }: { ticket: StudentTicket }) {
           onClose={() => setIsPassOpen(false)}
         />
       ) : null}
+      {isScannedShown ? <TicketScannedScreen ticket={ticket} onDone={() => setIsScannedShown(false)} /> : null}
     </View>
   );
 }

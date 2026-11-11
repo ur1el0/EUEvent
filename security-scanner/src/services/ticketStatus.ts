@@ -53,3 +53,31 @@ export function getTicketStatusLabel(ticket: StudentTicket): string {
 
   return getEventStatusLabel(ticket.event.status);
 }
+
+/** While the full-screen pass is open the student is at the gate, so check often. */
+export const PASS_OPEN_POLL_MS = 1_500;
+export const TICKET_POLL_INTERVAL_MS = 5_000;
+/** Slow down after a failed fetch so a bad connection is not hammered. */
+export const FAILED_POLL_MS = 15_000;
+
+/** How long to wait between checks: fastest at the gate, slowest after a failure. */
+export function getTicketPollIntervalMs({ isPassOpen, lastFetchFailed }: { isPassOpen: boolean; lastFetchFailed: boolean }): number {
+  if (isPassOpen) return PASS_OPEN_POLL_MS;
+  return lastFetchFailed ? FAILED_POLL_MS : TICKET_POLL_INTERVAL_MS;
+}
+
+type TicketPollState = {
+  isStudent: boolean;
+  isForeground: boolean;
+  tickets: readonly StudentTicket[];
+};
+
+/** Poll only for a student with the app open and at least one ticket still waiting to be scanned. */
+export function shouldPollTickets({ isStudent, isForeground, tickets }: TicketPollState): boolean {
+  return isStudent && isForeground && tickets.some((ticket) => ticket.status === 'issued');
+}
+
+/** True only for the moment a ticket goes from issued to claimed, so loading an already-used ticket never fires it. */
+export function didTicketGetScanned(previous: StudentTicket['status'], next: StudentTicket['status']): boolean {
+  return previous === 'issued' && next === 'claimed';
+}

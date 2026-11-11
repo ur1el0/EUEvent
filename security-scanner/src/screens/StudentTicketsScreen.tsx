@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { router } from 'expo-router';
 import {
   ActivityIndicator,
@@ -17,7 +18,8 @@ import { useStudentTickets } from '../hooks/useStudentTickets';
 import { colors, fonts } from '../theme';
 
 export function StudentTicketsScreen() {
-  const { firstName, tickets, message, isOffline, isLoading, isRefreshing, isSigningOut, refresh, signOut } = useStudentTickets();
+  const [isPassOpen, setIsPassOpen] = useState(false);
+  const { firstName, tickets, message, isOffline, isLoading, isRefreshing, isSigningOut, refresh, signOut } = useStudentTickets({ isPassOpen });
   const { warning } = signOut;
 
   return (
@@ -85,7 +87,7 @@ export function StudentTicketsScreen() {
           </Text>
         </View>
       ) : (
-        tickets.map((ticket) => <TicketCard key={ticket.id} ticket={ticket} />)
+        tickets.map((ticket) => <TicketCard key={ticket.id} ticket={ticket} onPassOpenChange={setIsPassOpen} />)
       )}
 
       <View style={styles.securityNote}>
