@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { errorMessage } from '../services/errorMessage';
 import { issueEventTicket } from '../services/eventService';
+import { describeIssueError, describeIssuedTicket } from '../services/ticketIssueMessages';
 import type { AdminEvent } from '../types/events';
 import type { FlashMessages } from './useFlashMessages';
 
@@ -36,12 +36,9 @@ export function useTicketIssuance(
           : gate)),
       }));
       setStudentNumber('');
-      const who = `Ticket #${result.ticket.id} issued to student ${result.ticket.student_number}.`;
-      flash.setNotice(event.status === 'scheduled' || event.status === 'in_progress'
-        ? `${who} They can refresh the mobile app to display it.`
-        : `${who} Its rotating pass becomes available after the event is scheduled.`);
+      flash.setNotice(describeIssuedTicket(result, event.status === 'scheduled' || event.status === 'in_progress'));
     } catch (cause) {
-      flash.setError(errorMessage(cause, 'Could not issue the ticket.'));
+      flash.setError(describeIssueError(cause));
     } finally {
       setIsIssuing(false);
     }

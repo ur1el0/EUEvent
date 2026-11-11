@@ -31,7 +31,7 @@ export function EventDetail({ token, event, venues, securityStaff, flash, replac
     <div className="event-detail">
       <EventDetailsPanel event={event} editor={editor} />
       <GateAssignmentsPanel event={event} venue={venue} securityStaff={securityStaff} gates={gates} />
-      <TicketIssuancePanel event={event} issuance={issuance} />
+      <TicketIssuancePanel token={token} event={event} issuance={issuance} />
       <TicketRosterPanel
         key={event.id}
         eventId={event.id}

@@ -48,7 +48,15 @@ export interface GateDraft {
 
 export interface IssuedTicketResult {
   configuration_version: number;
-  ticket: { id: number; student_number: string; event_gate_id: number; status: string };
+  ticket: {
+    id: number;
+    student_number: string;
+    /** Registered name and email; older API versions do not send them. */
+    student_name?: string;
+    student_email?: string;
+    event_gate_id: number;
+    status: string;
+  };
 }
 
 /** One line in the "what will change" list: the old and new value as readable text. */

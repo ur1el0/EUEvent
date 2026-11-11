@@ -1,14 +1,19 @@
 import { Loader2, TicketCheck } from 'lucide-react';
+import { useStudentLookup } from '../../hooks/useStudentLookup';
 import { isFinalStatus } from '../../services/eventLifecycle';
 import type { useTicketIssuance } from '../../hooks/useTicketIssuance';
 import type { AdminEvent } from '../../types/events';
+import { StudentLookupNote } from './StudentLookupNote';
 
 interface TicketIssuancePanelProps {
+  token: string;
   event: AdminEvent;
   issuance: ReturnType<typeof useTicketIssuance>;
 }
 
-export function TicketIssuancePanel({ event, issuance }: TicketIssuancePanelProps) {
+export function TicketIssuancePanel({ token, event, issuance }: TicketIssuancePanelProps) {
+  const lookup = useStudentLookup(token, issuance.studentNumber);
+
   return (
     <section className="surface-card panel ticket-issuance-panel" aria-labelledby="ticket-issuance-title">
       <div className="panel-heading">
@@ -20,8 +25,9 @@ export function TicketIssuancePanel({ event, issuance }: TicketIssuancePanelProp
       ) : (
         <form className="event-form ticket-issuance-form" onSubmit={issuance.issue}>
           <label htmlFor="ticket-student-number">Student number</label>
-          <input id="ticket-student-number" maxLength={32} required value={issuance.studentNumber} placeholder="e.g. 2026-00001"
+          <input id="ticket-student-number" maxLength={32} required value={issuance.studentNumber} placeholder="e.g. A12-34567"
             onChange={(change) => issuance.setStudentNumber(change.target.value)} />
+          <StudentLookupNote lookup={lookup} />
           <label htmlFor="ticket-event-gate">Event gate</label>
           <select id="ticket-event-gate" required value={issuance.gateId} onChange={(change) => issuance.setGateId(change.target.value)}>
             {event.event_gates.map((gate) => (
@@ -30,7 +36,7 @@ export function TicketIssuancePanel({ event, issuance }: TicketIssuancePanelProp
               </option>
             ))}
           </select>
-          <p className="ticket-issuance-note">The student account must already exist. Ticket secrets are delivered only to that student’s authenticated mobile app.</p>
+          <p className="ticket-issuance-note">The student must have created their account in the mobile app first. Ticket secrets are delivered only to that student’s authenticated mobile app.</p>
           <button className="btn btn--primary" type="submit"
             disabled={issuance.isIssuing || isFinalStatus(event.status) || !issuance.studentNumber.trim()}>
             {issuance.isIssuing ? <><Loader2 size={16} className="spin" /> Issuing…</> : <><TicketCheck size={16} /> Issue student ticket</>}
