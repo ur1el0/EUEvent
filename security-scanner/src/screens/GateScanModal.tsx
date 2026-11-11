@@ -1,9 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { CameraView, useCameraPermissions } from 'expo-camera';
-import * as Crypto from 'expo-crypto';
 import {
   ActivityIndicator,
-  Linking,
   Modal,
   Platform,
   Pressable,
@@ -11,16 +7,13 @@ import {
   Text,
   View,
 } from 'react-native';
+import { CameraView } from 'expo-camera';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { AlertTriangle, Camera, CheckCircle2, CloudOff, X } from 'lucide-react-native';
 import { ManifestFreshnessNotice } from '../components/ManifestFreshnessNotice';
+import { useTicketScanner } from '../hooks/useTicketScanner';
 import type { AssignedGate } from '../services/assignedGates';
-import { evaluateManifestFreshness, getManifestFreshnessCopy } from '../services/manifestFreshness';
 import type { OfflineGateManifest } from '../services/offlineManifestStore';
-import { hasScannedTicket, savePendingScan, type PendingScan } from '../services/offlineScanQueue';
-import { syncPendingScans } from '../services/scanSync';
-import { getTicketRejectionCopy } from '../services/ticketRejectionCopy';
-import { validateTicketQr } from '../services/ticketValidation';
 import { colors, fonts } from '../theme';
 
 export function GateScanModal({
@@ -44,153 +37,8 @@ export function GateScanModal({
   onClose: () => void;
   onQueueChanged: () => void;
 }) {
-  const [permission, requestPermission] = useCameraPermissions();
-  const [isScanning, setIsScanning] = useState(true);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [result, setResult] = useState<{ tone: 'success' | 'error' | 'neutral'; title: string; detail: string } | null>(null);
-  const [syncStatus, setSyncStatus] = useState('');
-  const [syncIssue, setSyncIssue] = useState('');
-  const scanLock = useRef(false);
-  const syncInFlight = useRef(false);
-  const syncRequested = useRef(false);
-  const retryAfter = useRef(0);
-  const activeScanId = useRef<string | null>(null);
-  const requestSyncRef = useRef<() => void>(() => undefined);
-
-  const requestBackgroundSync = useCallback(() => {
-    if (!token || Date.now() < retryAfter.current) return;
-    if (syncInFlight.current) {
-      syncRequested.current = true;
-      return;
-    }
-
-    syncInFlight.current = true;
-    syncRequested.current = false;
-    setIsSyncing(true);
-
-    void syncPendingScans(token, serverUrl, staffId)
-      .then((summary) => {
-        retryAfter.current = 0;
-        onQueueChanged();
-
-        const rejectedOutcomes = summary.outcomes.filter((outcome) => outcome.decision === 'rejected');
-        if (rejectedOutcomes.length > 0) {
-          const reason = serverReason(rejectedOutcomes[0].reason_code);
-          setSyncIssue(`${rejectedOutcomes.length} queued ${rejectedOutcomes.length === 1 ? 'scan was' : 'scans were'} rejected after sync. ${reason} Ask the event lead to review entry.`);
-          setSyncStatus(`${summary.accepted} accepted · ${summary.rejected} rejected after sync`);
-        } else if (summary.accepted > 0) {
-          setSyncIssue('');
-          setSyncStatus(`${summary.accepted} ${summary.accepted === 1 ? 'scan' : 'scans'} confirmed by the event server.`);
-        }
-
-        const displayedScanId = activeScanId.current;
-        const scanOutcome = displayedScanId
-          ? summary.outcomes.find((outcome) => outcome.scan_id === displayedScanId)
-          : undefined;
-        if (displayedScanId && scanOutcome?.decision === 'accepted') {
-          setResult({ tone: 'success', title: 'Entry accepted · synced', detail: 'The event server confirmed this ticket. The scan is recorded in the event log.' });
-        } else if (displayedScanId && scanOutcome?.decision === 'rejected') {
-          setResult({ tone: 'error', title: 'Server rejected this scan', detail: serverReason(scanOutcome.reason_code) });
-        }
-      })
-      .catch(() => {
-        retryAfter.current = Date.now() + 30_000;
-        syncRequested.current = false;
-        setSyncStatus('Server unavailable. Scans stay saved on this phone; scanning can continue while sync retries in the background.');
-      })
-      .finally(() => {
-        syncInFlight.current = false;
-        setIsSyncing(false);
-
-        if (syncRequested.current && Date.now() >= retryAfter.current) {
-          syncRequested.current = false;
-          requestSyncRef.current();
-        }
-      });
-  }, [onQueueChanged, serverUrl, staffId, token]);
-
-  useEffect(() => {
-    requestSyncRef.current = requestBackgroundSync;
-  }, [requestBackgroundSync]);
-
-  useEffect(() => {
-    if (!visible || !token) return;
-
-    requestBackgroundSync();
-    const retryInterval = setInterval(() => requestBackgroundSync(), 15_000);
-    return () => clearInterval(retryInterval);
-  }, [requestBackgroundSync, token, visible]);
-
-  async function handleBarcode({ data }: { data: string }) {
-    if (!visible || !isScanning || scanLock.current) return;
-    scanLock.current = true;
-    setIsScanning(false);
-    setIsProcessing(true);
-    setResult(null);
-
-    try {
-      const freshness = evaluateManifestFreshness(snapshot, Date.now());
-      if (freshness.decision === 'refuse') {
-        setResult({ tone: 'error', ...getManifestFreshnessCopy(freshness) });
-        return;
-      }
-
-      const check = await validateTicketQr(data, snapshot.manifest, assignment.gate_id);
-      if (!check.valid) {
-        setResult({ tone: 'error', ...getTicketRejectionCopy(check.reason) });
-        return;
-      }
-
-      const alreadyScanned = await hasScannedTicket(serverUrl, staffId, check.ticket.ticket_id);
-      if (alreadyScanned) {
-        setResult({ tone: 'error', title: 'Ticket already scanned', detail: 'This device has already recorded this ticket. Do not admit it again.' });
-        return;
-      }
-
-      const scan: PendingScan = {
-        scan_id: Crypto.randomUUID(),
-        ticket_id: check.ticket.ticket_id,
-        gate_id: assignment.gate_id,
-        scanned_at: Date.now(),
-        is_override: false,
-        event_configuration_version: snapshot.manifest.manifest_version,
-        code_step: check.timeStep,
-        code: check.code,
-      };
-      const saved = await savePendingScan(serverUrl, staffId, scan);
-      if (!saved) {
-        setResult({ tone: 'error', title: 'Ticket already scanned', detail: 'This device has already recorded this ticket. Do not admit it again.' });
-        return;
-      }
-
-      onQueueChanged();
-      activeScanId.current = scan.scan_id;
-      setSyncStatus('Saved on this phone. Server confirmation can happen in the background.');
-      setResult({ tone: 'success', title: 'Locally validated · saved on device', detail: 'The rotating code matches this saved gate manifest. This is not server confirmation; offline checks cannot see later revocations, event changes, or scans at other disconnected gates. Follow the event’s offline admission procedure and sync promptly.' });
-      if (token) {
-        requestBackgroundSync();
-      }
-    } catch (cause) {
-      setResult({
-        tone: 'error',
-        title: 'Could not record scan',
-        detail: cause instanceof Error ? cause.message : 'Check the encrypted device storage and try again.',
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  }
-
-  function scanNext() {
-    scanLock.current = false;
-    activeScanId.current = null;
-    setResult(null);
-    setIsScanning(true);
-  }
-
-  const cameraAllowed = permission?.granted === true;
-  const cameraCanBeRequested = permission?.canAskAgain !== false;
+  const scanner = useTicketScanner({ visible, assignment, snapshot, serverUrl, staffId, token, onQueueChanged });
+  const { camera, isScanning, isProcessing, result, isSyncing, syncStatus, syncIssue } = scanner;
   const manifestDate = new Date(snapshot.downloadedAt);
   const manifestTimestamp = Number.isNaN(manifestDate.getTime())
     ? 'an unknown time'
@@ -233,15 +81,15 @@ export function GateScanModal({
             <Text style={styles.permissionTitle}>Use the mobile scanner</Text>
             <Text style={styles.permissionCopy}>Camera scanning and encrypted offline scan storage are available in the iOS or Android app.</Text>
           </View>
-        ) : permission === null ? (
+        ) : camera.isChecking ? (
           <View style={styles.permissionCard}><ActivityIndicator color={colors.gold} /><Text style={styles.permissionCopy}>Checking camera access…</Text></View>
-        ) : !cameraAllowed ? (
+        ) : !camera.isAllowed ? (
           <View style={styles.permissionCard}>
             <Camera size={27} color={colors.gold} />
             <Text style={styles.permissionTitle}>Camera access needed</Text>
             <Text style={styles.permissionCopy}>EUEvent uses the camera to read student ticket QR codes. The image is checked on this phone and is not uploaded.</Text>
-            <Pressable onPress={() => cameraCanBeRequested ? void requestPermission() : void Linking.openSettings()} style={styles.permissionButton}>
-              <Text style={styles.permissionButtonText}>{cameraCanBeRequested ? 'Allow camera' : 'Open settings'}</Text>
+            <Pressable onPress={camera.request} style={styles.permissionButton}>
+              <Text style={styles.permissionButtonText}>{camera.canBeRequested ? 'Allow camera' : 'Open settings'}</Text>
             </Pressable>
           </View>
         ) : (
@@ -250,9 +98,9 @@ export function GateScanModal({
               <CameraView
                 style={styles.camera}
                 facing="back"
-                active={visible && cameraAllowed}
+                active={visible && camera.isAllowed}
                 barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-                onBarcodeScanned={isScanning ? handleBarcode : undefined}
+                onBarcodeScanned={isScanning ? scanner.handleBarcode : undefined}
               />
               {isScanning ? <View pointerEvents="none" style={styles.scanGuide}><View style={styles.scanGuideCorner} /><View style={[styles.scanGuideCorner, styles.scanGuideTopRight]} /><View style={[styles.scanGuideCorner, styles.scanGuideBottomLeft]} /><View style={[styles.scanGuideCorner, styles.scanGuideBottomRight]} /></View> : null}
             </View>
@@ -273,7 +121,7 @@ export function GateScanModal({
                 </View>
                 <Text style={styles.resultDetail}>{result.detail}</Text>
                 {!isScanning && !isProcessing ? (
-                  <Pressable onPress={scanNext} style={styles.scanNextButton}><Text style={styles.scanNextText}>Scan next ticket</Text></Pressable>
+                  <Pressable onPress={scanner.scanNext} style={styles.scanNextButton}><Text style={styles.scanNextText}>Scan next ticket</Text></Pressable>
                 ) : null}
               </View>
             ) : null}
@@ -293,17 +141,6 @@ export function GateScanModal({
       </SafeAreaProvider>
     </Modal>
   );
-}
-
-function serverReason(reasonCode: string | null): string {
-  const reasons: Record<string, string> = {
-    EVENT_NOT_ACTIVE: 'The event was cancelled, postponed, completed, or otherwise inactive before sync. Do not admit this ticket.',
-    TICKET_REVOKED: 'The administrator revoked this ticket before the scan synchronized. Do not admit it.',
-    GATE_MISMATCH: 'The server found this ticket assigned to a different gate. Do not admit it here.',
-    SPLIT_BRAIN_COLLISION: 'Another scanner already accepted this ticket. Check the event log before allowing entry.',
-    INVALID_TICKET_CODE: 'The server could not verify this QR code against the ticket secret. Do not admit it.',
-  };
-  return reasonCode ? reasons[reasonCode] ?? `The server rejected this scan (${reasonCode}). Do not admit this ticket.` : 'The server rejected this scan. Do not admit this ticket.';
 }
 
 const styles = StyleSheet.create({
