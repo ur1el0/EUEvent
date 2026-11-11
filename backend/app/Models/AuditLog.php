@@ -47,7 +47,7 @@ class AuditLog extends Model
 
     public function scannedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'scanned_by_user_id');
+        return $this->belongsTo(User::class, 'scanned_by_user_id')->withTrashed();
     }
 
     public function collidingScan(): BelongsTo

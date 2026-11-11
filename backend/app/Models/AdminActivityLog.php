@@ -26,6 +26,18 @@ class AdminActivityLog extends Model
 
     public const ACTION_ACCOUNT_PASSWORD_CHANGED = 'account_password_changed';
 
+    public const ACTION_SECURITY_STAFF_DELETED = 'security_staff_deleted';
+
+    public const ACTION_STUDENT_DELETED = 'student_deleted';
+
+    public const ACTION_VENUE_CREATED = 'venue_created';
+
+    public const ACTION_VENUE_UPDATED = 'venue_updated';
+
+    public const ACTION_VENUE_GATE_CREATED = 'venue_gate_created';
+
+    public const ACTION_VENUE_GATE_UPDATED = 'venue_gate_updated';
+
     public $timestamps = false;
 
     protected function casts(): array
@@ -37,6 +49,6 @@ class AdminActivityLog extends Model
 
     public function actor(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'actor_user_id');
+        return $this->belongsTo(User::class, 'actor_user_id')->withTrashed();
     }
 }

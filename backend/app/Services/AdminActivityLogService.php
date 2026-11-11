@@ -68,6 +68,12 @@ class AdminActivityLogService
                 'security_staff_account_created',
                 'security_staff_activated',
                 'security_staff_deactivated',
+                'security_staff_deleted',
+                'student_deleted',
+                'venue_created',
+                'venue_updated',
+                'venue_gate_created',
+                'venue_gate_updated',
             ])
             ->select([
                 'log.id',

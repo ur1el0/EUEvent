@@ -221,7 +221,16 @@ class AdminEventGateAssignmentService
             ->map(static fn ($id): int => (int) $id)
             ->all();
 
-        foreach (array_diff($desiredStaffIds, $currentStaffIds) as $userId) {
+        $newStaffIds = array_diff($desiredStaffIds, $currentStaffIds);
+
+        // A deleted account keeps the assignments it already has, but cannot be given new ones.
+        if ($newStaffIds !== [] && User::onlyTrashed()->whereIn('id', $newStaffIds)->exists()) {
+            throw ValidationException::withMessages([
+                'gates' => 'A deleted staff account cannot be assigned to a gate.',
+            ]);
+        }
+
+        foreach ($newStaffIds as $userId) {
             EventGateStaffAssignment::query()->create([
                 'event_gate_id' => $eventGate->getKey(),
                 'user_id' => $userId,
