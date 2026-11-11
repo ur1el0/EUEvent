@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { router } from 'expo-router';
 import { Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CircleHelp, KeyRound, Server, ShieldCheck, UserRound } from 'lucide-react-native';
+import { CircleHelp, KeyRound, Server, ShieldCheck, UserPlus, UserRound } from 'lucide-react-native';
 import { Button } from '../components/ui/Button';
 import { IconLabelButton } from '../components/ui/IconLabelButton';
 import { StatusBanner } from '../components/ui/StatusBanner';
@@ -72,6 +72,7 @@ export function SignInScreen() {
               onPress={() => router.push('/forgot-password')}
               style={styles.forgotPassword}
             />
+            {form.notice ? <StatusBanner tone="info" message={form.notice} style={styles.banner} /> : null}
             {form.error ? (
               <StatusBanner
                 tone="error"
@@ -95,6 +96,13 @@ export function SignInScreen() {
             <Text style={styles.secureNote}>Your session is stored in the device secure store.</Text>
           </View>
 
+          <IconLabelButton
+            icon={UserPlus}
+            label="New student? Create account"
+            onPress={() => router.push('/register')}
+            accessibilityHint="Opens the form to create a student account with your school email"
+            style={styles.register}
+          />
           <Text style={styles.footer}>For authorized EUEvent students and event security staff only</Text>
           <View style={styles.connection}>
             <IconLabelButton
@@ -145,6 +153,7 @@ function createStyles(palette: Palette) {
     },
     fieldSpacing: { marginTop: spacing.md + 2 },
     forgotPassword: { alignSelf: 'flex-end', marginTop: spacing.xs },
+    register: { alignSelf: 'center', marginTop: spacing.md },
     banner: { marginTop: spacing.sm },
     submit: { marginTop: spacing.md },
     hint: { ...typography.caption, color: palette.muted, textAlign: 'center', marginTop: spacing.sm + 2 },
