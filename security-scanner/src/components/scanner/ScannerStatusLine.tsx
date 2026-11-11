@@ -32,7 +32,7 @@ export function ScannerStatusLine({ gateCode, downloadedAt, freshness }: Scanner
         <Text
           style={styles.text}
           numberOfLines={1}
-          accessibilityLabel={`Gate ${gateCode}. Ticket list saved ${listTime}. Manifest ${label}.`}
+          accessibilityLabel={`Gate ${gateCode}. Ticket list saved ${listTime}. Ticket list ${label}.`}
         >
           {gateCode} · List {listTime}
         </Text>
@@ -53,10 +53,10 @@ export function ScannerStatusLine({ gateCode, downloadedAt, freshness }: Scanner
       {showInfo ? (
         <View style={styles.infoPanel}>
           <Text style={styles.infoText}>
-            This phone checks the rotating QR code against the encrypted gate manifest saved {listTime}. The check works without network access.
+            This phone checks the rotating QR code against the gate’s ticket list saved {listTime}. The check works without network access.
           </Text>
           <Text style={styles.infoText}>
-            Offline scans cannot receive later ticket revocations, event changes, or other gates’ scans. An offline admission stays provisional until it syncs with the event server.
+            Offline scans cannot receive later ticket revocations, event changes, or other gates’ scans. An offline admission stays provisional until the scan is sent to the server.
           </Text>
         </View>
       ) : null}

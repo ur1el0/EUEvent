@@ -46,7 +46,7 @@ export function GateScanModal({
             <View style={styles.headerTitleWrap}>
               <Text style={styles.eyebrow}>SECURITY SCANNER</Text>
               <Text style={styles.title} numberOfLines={1}>{assignment.gate_code} · {assignment.gate_name}</Text>
-              <Text style={styles.subtitle} numberOfLines={1}>{assignment.event_name} · manifest v{snapshot.manifest.manifest_version}</Text>
+              <Text style={styles.subtitle} numberOfLines={1}>{assignment.event_name}</Text>
             </View>
             <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Close scanner" style={styles.closeButton}>
               <X size={19} color={colors.text} />
@@ -93,17 +93,17 @@ export function GateScanModal({
           )}
 
           <View style={styles.footer}>
-            <Text style={styles.footerTitle}>{snapshot.manifest.tickets.length} tickets prepared for this gate</Text>
+            <Text style={styles.footerTitle}>{snapshot.manifest.tickets.length} tickets on this gate’s list</Text>
             {isSyncing ? (
               <View style={styles.syncLine} accessibilityLiveRegion="polite">
                 <ActivityIndicator size="small" color={colors.muted} />
-                <Text style={styles.footerText}>Syncing saved scans in the background…</Text>
+                <Text style={styles.footerText}>Sending saved scans to the server…</Text>
               </View>
             ) : null}
             <Text style={styles.footerText}>
               {pendingScanCount > 0
-                ? `${pendingScanCount} ${pendingScanCount === 1 ? 'scan is' : 'scans are'} waiting for server confirmation. Continue scanning; queued scans stay encrypted on this device.`
-                : syncStatus || 'Keep the screen visible at the door. Offline scans stay encrypted on this device until they are synchronized.'}
+                ? `${pendingScanCount} ${pendingScanCount === 1 ? 'scan is' : 'scans are'} waiting to be sent to the server. Keep scanning; they stay saved on this phone.`
+                : syncStatus || 'Keep the screen visible at the door. Scans stay saved on this phone until they are sent to the server.'}
             </Text>
           </View>
         </SafeAreaView>

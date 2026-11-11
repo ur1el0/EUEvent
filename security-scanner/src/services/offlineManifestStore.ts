@@ -43,7 +43,7 @@ export async function saveOfflineGateManifest(
   manifest: GateManifest,
 ): Promise<OfflineGateManifest> {
   if (manifest.gate_id !== assignment.gate_id) {
-    throw new Error('The manifest does not match this gate assignment.');
+    throw new Error('The ticket list does not match this gate assignment.');
   }
 
   const snapshot: OfflineGateManifest = {
@@ -64,7 +64,7 @@ export async function saveOfflineGateManifest(
   const encryptedPayload = await encrypted.combined('base64');
 
   if (typeof encryptedPayload !== 'string') {
-    throw new Error('Could not encode the encrypted gate manifest.');
+    throw new Error('Could not save the ticket list on this phone.');
   }
 
   const database = await getDatabase();
@@ -148,7 +148,7 @@ export async function clearOfflineGateManifests(): Promise<void> {
 
 async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
   if (Platform.OS === 'web') {
-    throw new Error('Encrypted offline manifests are available in the iOS and Android scanner app.');
+    throw new Error('Offline ticket lists are available in the iOS and Android scanner app.');
   }
 
   if (!databasePromise) {

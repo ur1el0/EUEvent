@@ -77,7 +77,7 @@ export async function testApiConnection(value: string): Promise<string> {
       signal: controller.signal,
     });
   } catch {
-    throw new Error('Could not reach the server. Check the LAN address and firewall.');
+    throw new Error('Could not reach the server. Check the address and that this phone is on the event network.');
   } finally {
     clearTimeout(timeoutId);
   }

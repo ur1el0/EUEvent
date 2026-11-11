@@ -59,7 +59,7 @@ export async function syncPendingScans(
 
 function validateSyncResponse(value: unknown, batch: PendingScan[]): ServerScanOutcome[] {
   if (typeof value !== 'object' || value === null) {
-    throw new Error('The event server returned an invalid sync result. Scans remain saved on this device.');
+    throw new Error('The event server returned an invalid result for the sent scans. Scans remain saved on this device.');
   }
 
   const payload = value as Partial<SyncResponse>;

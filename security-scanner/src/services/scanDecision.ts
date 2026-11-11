@@ -36,7 +36,7 @@ export function localAdmitDecision(scanId: string, studentNumber: string | null)
   return {
     verdict: 'admit',
     reason: 'Valid ticket for this gate',
-    detail: 'The rotating code matches this saved gate manifest. Offline checks cannot see later revocations, event changes, or scans at other disconnected gates. Follow the event’s offline admission procedure and sync promptly.',
+    detail: 'The rotating code matches this gate’s saved ticket list. Offline checks cannot see later revocations, event changes, or scans at other disconnected gates. Follow the event’s offline admission procedure and send scans to the server promptly.',
     confirmation: 'local',
     studentNumber,
     scanId,

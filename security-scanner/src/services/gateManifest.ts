@@ -23,7 +23,7 @@ export async function fetchGateManifest(token: string, gateId: number): Promise<
   const payload = await apiRequest<unknown>(`/gates/${gateId}/manifest`, { token });
 
   if (!isGateManifest(payload) || payload.gate_id !== gateId) {
-    throw new Error('The event server returned an invalid gate manifest.');
+    throw new Error('The event server returned an invalid ticket list for this gate.');
   }
 
   return payload;

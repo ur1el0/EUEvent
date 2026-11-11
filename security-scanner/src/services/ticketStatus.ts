@@ -32,19 +32,24 @@ export function sortTicketsForDisplay(tickets: readonly StudentTicket[]): Studen
   });
 }
 
-/** Plain-language status for a ticket, replacing raw API words such as `in_progress`. */
+const eventLabels: Record<StudentTicket['event']['status'], string> = {
+  draft: 'Not scheduled yet',
+  scheduled: 'Entry opens soon',
+  in_progress: 'Entry open',
+  postponed: 'Postponed',
+  cancelled: 'Cancelled',
+  completed: 'Ended',
+};
+
+/** Plain-language event status, replacing raw API words such as `in_progress`. Shared by student and staff screens. */
+export function getEventStatusLabel(eventStatus: StudentTicket['event']['status']): string {
+  return eventLabels[eventStatus];
+}
+
+/** Plain-language status for a ticket: Used or Revoked first, otherwise the event's status. */
 export function getTicketStatusLabel(ticket: StudentTicket): string {
   if (ticket.status === 'claimed') return 'Used';
   if (ticket.status === 'revoked') return 'Revoked';
 
-  const eventLabels: Record<StudentTicket['event']['status'], string> = {
-    draft: 'Not scheduled yet',
-    scheduled: 'Entry opens soon',
-    in_progress: 'Entry open',
-    postponed: 'Postponed',
-    cancelled: 'Cancelled',
-    completed: 'Ended',
-  };
-
-  return eventLabels[ticket.event.status];
+  return getEventStatusLabel(ticket.event.status);
 }

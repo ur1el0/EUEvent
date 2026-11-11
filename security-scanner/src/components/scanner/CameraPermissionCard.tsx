@@ -24,7 +24,7 @@ export function CameraPermissionCard(props: CameraPermissionCardProps) {
       <View style={styles.card}>
         <CloudOff size={26} color={colors.gold} />
         <Text style={styles.title}>Use the mobile scanner</Text>
-        <Text style={styles.copy}>Camera scanning and encrypted offline scan storage are available in the iOS or Android app.</Text>
+        <Text style={styles.copy}>Camera scanning and offline scan saving are available in the iOS or Android app.</Text>
       </View>
     );
   }
