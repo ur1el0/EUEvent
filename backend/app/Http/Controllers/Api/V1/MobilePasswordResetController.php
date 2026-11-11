@@ -6,29 +6,17 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\RequestMobilePasswordResetLinkRequest;
 use App\Http\Requests\Api\V1\ResetMobilePasswordRequest;
 use App\Models\User;
+use App\Services\MobilePasswordResetLinkService;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
-use Throwable;
 
 class MobilePasswordResetController extends Controller
 {
-    public function sendLink(RequestMobilePasswordResetLinkRequest $request): JsonResponse
+    public function sendLink(RequestMobilePasswordResetLinkRequest $request, MobilePasswordResetLinkService $resetLinks): JsonResponse
     {
-        $email = $request->validated()['email'];
-        $eligibleAccountExists = User::query()
-            ->where('email', $email)
-            ->whereIn('role', [User::ROLE_STUDENT, User::ROLE_SECURITY_STAFF])
-            ->exists();
-
-        if ($eligibleAccountExists) {
-            try {
-                Password::sendResetLink(['email' => $email]);
-            } catch (Throwable $exception) {
-                report($exception);
-            }
-        }
+        $resetLinks->send($request->validated()['email']);
 
         return response()->json([
             'message' => 'If an eligible account uses that email, a password reset token will be sent.',

@@ -6,6 +6,7 @@ use App\Models\AdminActivityLog;
 use App\Models\PendingRegistration;
 use App\Models\User;
 use App\Notifications\MobileRegistrationCodeNotification;
+use App\Support\MailFailureLog;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -209,8 +210,17 @@ class StudentRegistrationService
             Notification::route('mail', $email)
                 ->notify(new MobileRegistrationCodeNotification($name, $code, $this->lifetimeMinutes()));
         } catch (Throwable $exception) {
-            // The response stays generic; the person can ask for a new code.
-            report($exception);
+            // The response stays generic. Log without the code (report() would add a stack trace with it).
+            MailFailureLog::warn('Registration code email', $exception);
+            $this->allowImmediateRetry($email);
         }
+    }
+
+    /** A code that was never delivered must not hold the person back with the resend cooldown. */
+    private function allowImmediateRetry(string $email): void
+    {
+        PendingRegistration::query()
+            ->where('email', $email)
+            ->update(['last_sent_at' => now()->subSeconds((int) config('registration.resend_cooldown_seconds') + 1)]);
     }
 }
