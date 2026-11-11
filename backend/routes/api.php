@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\V1\AssignedGatesController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\GateManifestController;
 use App\Http\Controllers\Api\V1\MobilePasswordResetController;
+use App\Http\Controllers\Api\V1\StudentRegistrationController;
 use App\Http\Controllers\Api\V1\StudentTicketController;
 use App\Http\Controllers\Api\V1\SyncBatchController;
 use App\Models\User;
@@ -23,6 +24,12 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->group(function (): void {
     Route::post('/auth/login', [AuthController::class, 'login'])
         ->middleware('throttle:6,1');
+    Route::post('/auth/register', [StudentRegistrationController::class, 'register'])
+        ->middleware('throttle:student-register');
+    Route::post('/auth/register/verify', [StudentRegistrationController::class, 'verify'])
+        ->middleware('throttle:student-register-verify');
+    Route::post('/auth/register/resend', [StudentRegistrationController::class, 'resend'])
+        ->middleware('throttle:student-register-resend');
     Route::post('/auth/password/email', [MobilePasswordResetController::class, 'sendLink'])
         ->middleware('throttle:5,1');
     Route::post('/auth/password/reset', [MobilePasswordResetController::class, 'reset'])
