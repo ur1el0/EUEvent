@@ -189,6 +189,9 @@ class OfflineTicketingFlowTest extends TestCase
             ->assertOk()
             ->assertJsonPath('gate_id', $northEventGate->id)
             ->assertJsonPath('event_status', Event::STATUS_SCHEDULED)
+            ->assertJsonPath('event_starts_at', $event->starts_at->toIso8601String())
+            ->assertJsonPath('event_ends_at', $event->ends_at->toIso8601String())
+            ->assertJsonStructure(['generated_at'])
             ->assertJsonPath('tickets.0.ticket_id', $northTicket->id)
             ->assertJsonPath('tickets.0.totp_secret', $northSecret);
 

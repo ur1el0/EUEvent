@@ -13,7 +13,9 @@ import {
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { AlertTriangle, Camera, CheckCircle2, CloudOff, X } from 'lucide-react-native';
+import { ManifestFreshnessNotice } from '../components/ManifestFreshnessNotice';
 import type { AssignedGate } from '../services/assignedGates';
+import { evaluateManifestFreshness, getManifestFreshnessCopy } from '../services/manifestFreshness';
 import type { OfflineGateManifest } from '../services/offlineManifestStore';
 import { hasScannedTicket, savePendingScan, type PendingScan } from '../services/offlineScanQueue';
 import { syncPendingScans } from '../services/scanSync';
@@ -128,6 +130,12 @@ export function GateScanModal({
     setResult(null);
 
     try {
+      const freshness = evaluateManifestFreshness(snapshot, Date.now());
+      if (freshness.decision === 'refuse') {
+        setResult({ tone: 'error', ...getManifestFreshnessCopy(freshness) });
+        return;
+      }
+
       const check = await validateTicketQr(data, snapshot.manifest, assignment.gate_id);
       if (!check.valid) {
         setResult({ tone: 'error', ...getTicketRejectionCopy(check.reason) });
@@ -202,6 +210,8 @@ export function GateScanModal({
             <X size={19} color={colors.text} />
           </Pressable>
         </View>
+
+        <ManifestFreshnessNotice snapshot={snapshot} />
 
         <View style={styles.manifestWarning}>
           <AlertTriangle size={16} color={colors.gold} />

@@ -33,7 +33,7 @@ export async function getApiBaseUrl(): Promise<string> {
 
 export async function apiRequest<T>(
   path: string,
-  options: { method?: 'GET' | 'POST'; token?: string; body?: unknown; baseUrl?: string } = {},
+  options: { method?: 'GET' | 'POST' | 'PATCH'; token?: string; body?: unknown; baseUrl?: string } = {},
 ): Promise<T> {
   const baseUrl = options.baseUrl ? normalizeApiBaseUrl(options.baseUrl) : await getApiBaseUrl();
   const controller = new AbortController();

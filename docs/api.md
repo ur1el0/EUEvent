@@ -19,6 +19,7 @@ This document records the API conventions for this project and marks which route
 | `POST /api/v1/auth/password/email` | Public, throttled | Returns the same 202 response for any email; emails a one-time reset token only to eligible student or security staff accounts. Delivery requires configured mail. |
 | `POST /api/v1/auth/password/reset` | Public, throttled | Accepts email, one-time token, and confirmed new password. Successful reset revokes the user's existing API tokens. |
 | `POST /api/v1/auth/logout` | Authenticated | Revokes the current token. |
+| `PATCH /api/v1/auth/password` | Any active signed-in user, throttled | Changes a known password after checking the current one. Revokes every other API token for the account and keeps the token used for the request. |
 | `GET /api/v1/auth/me` | Authenticated | Returns the current user identity and role. |
 | `GET /api/v1/staff/gates` | Security staff | Lists only the authenticated staff member's assigned event gates with non-secret event and ticket-count metadata. Response includes `Cache-Control: private, no-store`. |
 | `GET /api/v1/gates/{gateId}/manifest` | Assigned security staff | Returns the assigned gate's ticket manifest for scheduled or in-progress events. Response includes `Cache-Control: no-store`. |
@@ -45,6 +46,14 @@ For exact response fields, inspect the matching Laravel controller and API Resou
 `POST /api/v1/auth/password/email` accepts `{ "email": "..." }`. The route is limited to five requests per minute per client IP. It responds with HTTP 202 and the same message whether the account exists or is eligible. Student and Security Staff accounts receive a one-time token by mail; administrators are not eligible for this mobile flow. A working Laravel mail transport is required for real delivery.
 
 `POST /api/v1/auth/password/reset` accepts `email`, `token`, `password`, and `password_confirmation`. Passwords must contain at least 12 characters and match. The token expires in 60 minutes and is single use. Success changes the password, rotates the remember token, deletes the user's Sanctum tokens, and returns a message to sign in again. An invalid, expired, already-used token, or ineligible account returns a generic 422 message.
+
+## Signed-in password change
+
+`PATCH /api/v1/auth/password` requires a Sanctum bearer token and an active student, security staff, or administrator account. It allows six requests per minute per user. The body contains `current_password`, `password`, and `password_confirmation`. The new password must have at least 12 characters and match its confirmation, the same rule as the reset flow.
+
+A wrong current password returns 422 with the generic message `The current password is incorrect.` under `errors.current_password`. Other validation failures return the usual 422 field errors. A missing or revoked token, or an inactive account, returns 401.
+
+On success the API stores the new password hash, rotates the remember token, deletes every other Sanctum token for the account, and records an `account_password_changed` row in `admin_activity_logs` with no password data. It keeps the token used for this request, so a scanner that holds encrypted pending scans stays signed in. The response is `{ "message": "Password updated. Other signed-in sessions were signed out." }`. Passwords are never returned or logged. A different phone whose token was revoked this way only finds out the next time it reaches the server. Its queued scans stay encrypted on that phone, and the same staff account can sync them after signing in again.
 
 ## Security staff account status
 
@@ -91,7 +100,7 @@ The gate must belong to the event venue; every staff ID must belong to a securit
 
 ### Manifest availability
 
-`GET /api/v1/gates/{gateId}/manifest` returns 409 unless the event is `scheduled` or `in_progress`. The manifest now includes `event_status` alongside `gate_id`, `manifest_version`, and tickets. The mobile scanner stores the entire manifest as authenticated AES-GCM ciphertext in SQLite; its 256-bit encryption key stays in SecureStore. A previously downloaded offline manifest cannot receive an immediate cancellation or postponement; local validation is provisional until reconciliation.
+`GET /api/v1/gates/{gateId}/manifest` returns 409 unless the event is `scheduled` or `in_progress`. The manifest includes `gate_id`, `event_status`, `manifest_version`, `event_starts_at`, `event_ends_at`, `generated_at`, and `tickets`. The three time fields are ISO 8601 strings: the event's scheduled window and the server time when the response was built. They were added without renaming or removing any existing field. The scanner measures manifest age with its own clock from the moment it saved the download, and refuses or warns according to [ADR 014](../architecture/decisions/014-offline-manifest-freshness-policy.md). `generated_at` is stored for display and audit only; it is not used as a time source. The mobile scanner stores the entire manifest as authenticated AES-GCM ciphertext in SQLite; its 256-bit encryption key stays in SecureStore. A previously downloaded offline manifest cannot receive an immediate cancellation or postponement; local validation is provisional until reconciliation.
 
 ### Assigned gate discovery
 
@@ -114,7 +123,7 @@ The client encrypts queued records in SQLite, sends at most 50 per request, and 
 
 ## Routes still to design
 
-The current backend does **not** yet expose the full product API. Historical audit export/cursor pagination, student password change/reset, and scanner heartbeat/pending-sync telemetry remain planned. The current activity endpoint is limited to the newest 100 matching records. Do not present the future capabilities as implemented. Do not copy the reference's `registrations`, `access_points`, `/me/tickets`, or `/staff/events/.../admissions` names without a deliberate schema and ADR review.
+The current backend does **not** yet expose the full product API. Historical audit export/cursor pagination, and scanner heartbeat/pending-sync telemetry remain planned. The current activity endpoint is limited to the newest 100 matching records. Do not present the future capabilities as implemented. Do not copy the reference's `registrations`, `access_points`, `/me/tickets`, or `/staff/events/.../admissions` names without a deliberate schema and ADR review.
 
 ## Rules for new endpoints
 

@@ -24,6 +24,8 @@ class AdminActivityLog extends Model
 
     public const ACTION_SECURITY_STAFF_DEACTIVATED = 'security_staff_deactivated';
 
+    public const ACTION_ACCOUNT_PASSWORD_CHANGED = 'account_password_changed';
+
     public $timestamps = false;
 
     protected function casts(): array

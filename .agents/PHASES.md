@@ -26,7 +26,9 @@ This roadmap tracks the current MVP, not a production readiness certification. I
 
 **Implemented on the hardening branch:** Mobile password recovery for students and staff, administrator activation/deactivation of scanner staff, API token revocation, a cached per-manifest ticket lookup index, tests, and corrected security/operating documentation.
 
-**Still to validate:** Apply the staff migration in the target database; configure a real mail transport and receive a reset email; test account recovery and deactivation on the devices and dashboard used for the demonstration.
+**Implemented on `feature/milestone-gaps`:** Signed-in password change (`PATCH /api/v1/auth/password`) that keeps the current token and revokes the others; event window and generation time in gate manifests; the scanner's offline manifest freshness rule ([ADR 014](../architecture/decisions/014-offline-manifest-freshness-policy.md), thresholds proposed and pending team approval); and the [event-day runbook](../docs/event-day-runbook.md).
+
+**Still to validate:** Apply the staff migration in the target database; configure a real mail transport and receive a reset email; test account recovery, password change, and deactivation on the devices and dashboard used for the demonstration; approve the ADR 014 thresholds.
 
 ## Phase 5 — Readiness checks before the 30–50% milestone review
 
@@ -35,7 +37,8 @@ This roadmap tracks the current MVP, not a production readiness certification. I
 - [ ] Test staff account activation/deactivation and gate assignment in the admin dashboard against the local API.
 - [ ] Run offline scanning on two devices, including same-step screenshot replay and duplicate presentation, then synchronize and review the collision.
 - [ ] Benchmark realistic manifest sizes and scan queues on supported phones and PostgreSQL; publish measured limits only after recording results.
-- [ ] Document the manual admission procedure for cancellation, reschedule, stale manifest, lost phone, low battery, and offline collision.
+- [x] Document the manual admission procedure for cancellation, reschedule, stale manifest, lost phone, low battery, and offline collision. See the [event-day runbook](../docs/event-day-runbook.md).
+- [ ] Get team approval for the ADR 014 manifest freshness thresholds (6-hour warning, 24-hour maximum age, 60-minute post-event grace).
 
 ## Beyond this MVP milestone
 
