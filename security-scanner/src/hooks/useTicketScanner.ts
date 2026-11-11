@@ -1,13 +1,15 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Linking } from 'react-native';
 import { useCameraPermissions } from 'expo-camera';
 import * as Crypto from 'expo-crypto';
+import { useDecisionHaptics } from './useDecisionHaptics';
 import { useSyncQueue } from './useSyncQueue';
 import type { AssignedGate } from '../services/assignedGates';
 import { evaluateManifestFreshness, getManifestFreshnessCopy } from '../services/manifestFreshness';
 import type { OfflineGateManifest } from '../services/offlineManifestStore';
 import { hasScannedTicket, savePendingScan, type PendingScan, type ServerScanOutcome } from '../services/offlineScanQueue';
 import { applyServerOutcome, denyDecision, localAdmitDecision, type ScanDecision } from '../services/scanDecision';
+import { ADMIT_AUTO_RESUME_MS, getAutoResumeScanId } from '../services/scanFeedback';
 import { serverReason } from '../services/serverScanReasons';
 import { getTicketRejectionCopy } from '../services/ticketRejectionCopy';
 import { validateTicketQr } from '../services/ticketValidation';
@@ -33,6 +35,7 @@ export function useTicketScanner({ visible, assignment, snapshot, serverUrl, sta
   const [isScanning, setIsScanning] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [decision, setDecision] = useState<ScanDecision | null>(null);
+  const [heldScanId, setHeldScanId] = useState<string | null>(null);
   const scanLock = useRef(false);
 
   // Only the scan currently on screen is updated; after "Scan next" its outcome shows in the sync summary.
@@ -100,11 +103,22 @@ export function useTicketScanner({ visible, assignment, snapshot, serverUrl, sta
     }
   }
 
-  function scanNext() {
+  const scanNext = useCallback(() => {
     scanLock.current = false;
     setDecision(null);
+    setHeldScanId(null);
     setIsScanning(true);
-  }
+  }, []);
+
+  useDecisionHaptics(decision);
+
+  // An ADMIT resumes scanning by itself; DO NOT ADMIT waits for "Scan next" so staff can deal with the student.
+  const autoResumeScanId = getAutoResumeScanId(decision, heldScanId);
+  useEffect(() => {
+    if (!autoResumeScanId) return;
+    const timer = setTimeout(scanNext, ADMIT_AUTO_RESUME_MS);
+    return () => clearTimeout(timer);
+  }, [autoResumeScanId, scanNext]);
 
   const cameraCanBeRequested = permission?.canAskAgain !== false;
 
@@ -120,6 +134,8 @@ export function useTicketScanner({ visible, assignment, snapshot, serverUrl, sta
     decision,
     handleBarcode,
     scanNext,
+    isAutoResuming: autoResumeScanId !== null,
+    holdResult: () => setHeldScanId(autoResumeScanId),
     isSyncing: sync.isSyncing,
     syncStatus: sync.syncStatus,
     syncIssue: sync.syncIssue,

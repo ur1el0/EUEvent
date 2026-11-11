@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { CircleCheckBig, CircleX, CloudCheck, IdCard, Smartphone } from 'lucide-react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { CircleCheckBig, CircleX, CloudCheck, IdCard, Pause, Smartphone } from 'lucide-react-native';
 import { Button } from '../ui/Button';
+import { IconLabelButton } from '../ui/IconLabelButton';
 import { usePalette } from '../../hooks/usePalette';
 import {
   getConfirmationNote,
@@ -9,16 +10,22 @@ import {
   getDecisionHeadline,
   type ScanDecision,
 } from '../../services/scanDecision';
+import { ADMIT_AUTO_RESUME_MS } from '../../services/scanFeedback';
 import { fontSizes, fonts, radius, spacing, typography, type Palette } from '../../theme';
 
 type ScanDecisionPanelProps = {
   decision: ScanDecision;
   canScanNext: boolean;
   onScanNext: () => void;
+  /** True while an ADMIT counts down to scanning again; tapping the panel holds it. */
+  isAutoResuming: boolean;
+  onHold: () => void;
 };
 
+const AUTO_RESUME_SECONDS = ADMIT_AUTO_RESUME_MS / 1000;
+
 /** The gate decision: ADMIT or DO NOT ADMIT first, then one reason, then small print. */
-export function ScanDecisionPanel({ decision, canScanNext, onScanNext }: ScanDecisionPanelProps) {
+export function ScanDecisionPanel({ decision, canScanNext, onScanNext, isAutoResuming, onHold }: ScanDecisionPanelProps) {
   const palette = usePalette();
   const styles = useMemo(() => createStyles(palette), [palette]);
   const admit = decision.verdict === 'admit';
@@ -28,7 +35,12 @@ export function ScanDecisionPanel({ decision, canScanNext, onScanNext }: ScanDec
   const NoteIcon = decision.confirmation === 'server' ? CloudCheck : Smartphone;
 
   return (
-    <View style={[styles.panel, admit ? styles.admit : styles.deny]}>
+    // accessible={false} keeps the decision announcement and buttons reachable inside the tap-to-hold area.
+    <Pressable
+      accessible={false}
+      onPress={isAutoResuming ? onHold : undefined}
+      style={[styles.panel, admit ? styles.admit : styles.deny]}
+    >
       <View
         accessible
         accessibilityRole="alert"
@@ -58,8 +70,18 @@ export function ScanDecisionPanel({ decision, canScanNext, onScanNext }: ScanDec
         ) : null}
       </View>
       <Text style={styles.detail}>{decision.detail}</Text>
-      {canScanNext ? <View style={styles.actions}><Button label="Scan next ticket" onPress={onScanNext} /></View> : null}
-    </View>
+      {canScanNext ? (
+        <View style={styles.actions}>
+          {isAutoResuming ? (
+            <View style={styles.resumeRow}>
+              <Text style={styles.resumeText}>Scanning resumes in {AUTO_RESUME_SECONDS} seconds.</Text>
+              <IconLabelButton icon={Pause} label="Hold" tone="text" onPress={onHold} accessibilityLabel="Hold this result on screen" />
+            </View>
+          ) : null}
+          <Button label="Scan next ticket" onPress={onScanNext} />
+        </View>
+      ) : null}
+    </Pressable>
   );
 }
 
@@ -87,6 +109,8 @@ function createStyles(palette: Palette) {
     noteRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm - 2 },
     note: { ...typography.bodyStrong, flex: 1, color: palette.text },
     detail: { ...typography.caption, color: palette.muted, marginTop: spacing.md - 3, fontSize: fontSizes.caption },
-    actions: { marginTop: 'auto', paddingTop: spacing.md },
+    actions: { marginTop: 'auto', paddingTop: spacing.md, gap: spacing.sm },
+    resumeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
+    resumeText: { ...typography.bodyStrong, flex: 1, color: palette.text },
   });
 }

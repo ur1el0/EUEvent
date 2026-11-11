@@ -73,7 +73,13 @@ export function GateScanModal({
               />
               {decision ? (
                 <ScrollView style={styles.panelScroll} contentContainerStyle={styles.panelContent}>
-                  <ScanDecisionPanel decision={decision} canScanNext={!isScanning && !isProcessing} onScanNext={scanner.scanNext} />
+                  <ScanDecisionPanel
+                    decision={decision}
+                    canScanNext={!isScanning && !isProcessing}
+                    onScanNext={scanner.scanNext}
+                    isAutoResuming={scanner.isAutoResuming}
+                    onHold={scanner.holdResult}
+                  />
                 </ScrollView>
               ) : (
                 <View style={styles.instruction}>
