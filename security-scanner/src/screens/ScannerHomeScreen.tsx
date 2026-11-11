@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MapPin, RefreshCw } from 'lucide-react-native';
+import { MapPin } from 'lucide-react-native';
 import { GateScanModal } from './GateScanModal';
 import { AdvancedSection } from '../components/scannerHome/AdvancedSection';
 import { AssignmentCard } from '../components/scannerHome/AssignmentCard';
 import { ConnectionStatusPill } from '../components/scannerHome/ConnectionStatusPill';
 import { PendingQueueCard } from '../components/scannerHome/PendingQueueCard';
 import { PreEventChecklist } from '../components/scannerHome/PreEventChecklist';
+import { RefreshIconButton } from '../components/ui/RefreshIconButton';
 import { ScannerHomeHeader } from '../components/scannerHome/ScannerHomeHeader';
 import { useGateAssignments } from '../hooks/useGateAssignments';
 import { getGateScanState } from '../services/gateScanAvailability';
@@ -48,9 +49,7 @@ export function ScannerHomeScreen() {
           <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleRow}>
               <Text style={styles.sectionTitle}>Your assignments</Text>
-              <Pressable onPress={gates.refresh} disabled={isRefreshing} accessibilityRole="button" accessibilityLabel="Refresh assignments" style={styles.refreshButton}>
-                {isRefreshing ? <ActivityIndicator color={colors.gold} /> : <RefreshCw size={16} color={colors.gold} />}
-              </Pressable>
+              <RefreshIconButton onPress={gates.refresh} isRefreshing={isRefreshing} accessibilityLabel="Refresh assignments" />
             </View>
             <Text style={styles.sectionHint}>Your gates, or the copies saved on this phone when offline.</Text>
           </View>
@@ -122,7 +121,6 @@ const styles = StyleSheet.create({
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   sectionTitle: { flex: 1, color: colors.text, fontFamily: fonts.heading, fontSize: 23, lineHeight: 28 },
   sectionHint: { ...typography.caption, color: colors.muted },
-  refreshButton: { flexShrink: 0, width: 44, height: 44, borderRadius: 14, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   loadingCard: { minHeight: 108, borderRadius: 20, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', gap: 9, marginBottom: 13 },
   loadingText: { color: colors.muted, fontFamily: fonts.body, fontSize: 12 },
   error: { color: colors.red, fontFamily: fonts.bodyStrong, fontSize: 12, lineHeight: 18, backgroundColor: '#49201E', borderRadius: 14, padding: 12, marginBottom: 13 },
