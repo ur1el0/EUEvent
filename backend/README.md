@@ -47,6 +47,65 @@ For a safe demo database isolated from Supabase, follow the [local presentation 
 
 The seeder refuses to run in the `production` environment and when the password is missing or shorter than 12 characters. If `student@euevent.test` already exists it changes nothing. Do not commit the password.
 
+## Sending real email with Brevo
+
+EUEvent emails a verification code when a student registers and a token when a student or staff member resets a password. In local development the `log` mailer is the default, so nothing is delivered. To send real email, point Laravel at Brevo's SMTP relay. This section assumes you already use the code in this repository; Brevo's own pages are the authority for their menus, limits and pricing, so check them rather than relying on this guide.
+
+Mail is sent immediately while the request is handled. The notifications are not queued, so you do **not** need to run `php artisan queue:work` for registration or password-reset email.
+
+### 1. Set up Brevo
+
+1. Create a Brevo account.
+2. **Verify a sender.** Add the address you will send from and confirm it, or authenticate a domain you control. Brevo may reject or flag mail from a sender it has not verified.
+3. **Generate an SMTP key.** In Brevo's SMTP settings, create an SMTP key. Brevo shows an SMTP login (not your account email) and the key; the key is your `MAIL_PASSWORD`. It is shown once, so store it in a password manager.
+4. **Authorize the sending machine's IP address.** Brevo can block SMTP use from IP addresses you have not authorized. Add the public IP of the computer or server that runs the API in Brevo's security settings. A home or school connection can change address, so authorize the new one if sending stops working.
+
+### 2. Configure `backend/.env`
+
+Edit your own ignored `.env` (never `.env.example`, and never commit credentials):
+
+```dotenv
+MAIL_MAILER=smtp
+MAIL_HOST=smtp-relay.brevo.com
+MAIL_PORT=587
+MAIL_SCHEME=smtp
+MAIL_USERNAME=<your Brevo SMTP login>
+MAIL_PASSWORD=<your Brevo SMTP key>
+MAIL_FROM_ADDRESS=<a sender you verified in Brevo>
+MAIL_FROM_NAME="EUEvent"
+```
+
+Port 587 uses STARTTLS, which the `smtp` scheme negotiates. `smtps` is for implicit TLS on port 465, so do not combine it with 587. Then clear the cached configuration:
+
+```bash
+php artisan config:clear
+```
+
+### 3. Test it
+
+```bash
+php artisan mail:test someone@student.mseuf.edu.ph
+```
+
+The command sends a short plain message and prints the mailer, host and from address it used. It never prints the username or password. It refuses to run when `MAIL_MAILER` is `log` or `array`, because nothing would be delivered, and it reports a failure with the server's message (credentials and addresses removed).
+
+If sending fails during registration or password reset, the app still returns its normal generic response, so a person cannot tell whether an account exists. The failure is logged in `storage/logs/laravel.log` with the exception class and a redacted message, never the code or token. The person can request a new code straight away.
+
+### Local development without sending
+
+With `MAIL_MAILER=log` (the default in `.env.example`) the whole email, including the registration code or reset token, is written to `storage/logs/laravel.log`. Search the file for "verification code" or "reset". This is fine for development and must never be used for real users.
+
+### Troubleshooting
+
+- **The message is in the junk folder.** Outlook and Microsoft 365 often filter mail from a new sender. Ask the recipient to check junk, mark the message as not junk, and add the sender to their safe senders.
+- **The sender is not verified.** Brevo can refuse or flag messages from an unverified `MAIL_FROM_ADDRESS`. Verify the exact address in Brevo.
+- **The IP address is not authorized.** A connection or authentication error from a machine whose address changed usually means the new IP needs authorizing in Brevo.
+- **A sending limit was reached.** Free plans have a daily sending limit. Check Brevo's own pages for the current limits and your usage.
+- **SPF and DKIM.** If you send from a domain you control, authenticate it in Brevo by adding the SPF and DKIM records Brevo gives you to that domain's DNS. Without them, receivers are more likely to filter the mail.
+- **Sending as the school's own domain can look like spoofing.** Using an `@student.mseuf.edu.ph` or `@mseuf.edu.ph` address as the sender means a third-party service is sending as that domain. Unless the school's mail administrator has authorized Brevo for that domain (SPF and DKIM), receivers may treat the mail as spoofed. A sender on a domain you control, with SPF and DKIM set up, is safer.
+- **The school's mail administrator quarantined the sender.** An unknown sender can be held in quarantine without reaching the junk folder. Ask the mail administrator to release the message and allow the sender.
+- **The command says nothing would be delivered.** `MAIL_MAILER` is still `log` or `array`. Fix `.env`, run `php artisan config:clear`, and try again.
+
 ## Tests and quality checks
 
 From this directory:
