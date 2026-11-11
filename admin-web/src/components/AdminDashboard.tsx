@@ -1,9 +1,9 @@
 import { useState, type CSSProperties } from 'react';
 import {
-  Activity, AlertCircle, CalendarDays, CheckCheck, ChevronDown,
-  ClipboardList, DoorOpen, GraduationCap, LogOut, RefreshCw, ShieldCheck, TicketCheck,
+  Activity, AlertCircle, CalendarDays, CheckCheck, ChevronDown, DoorOpen, LogOut, RefreshCw, TicketCheck,
 } from 'lucide-react';
 import { useAdminMetrics } from '../hooks/useAdminMetrics';
+import { useEventOptions } from '../hooks/useEventOptions';
 import type { AuthSession } from '../types';
 import { GateThroughputPanel } from './GateThroughputPanel';
 import { MetricCard } from './MetricCard';
@@ -12,6 +12,8 @@ import { SecurityStaffManagement } from './SecurityStaffManagement';
 import { AdminEventManagement } from './AdminEventManagement';
 import { StudentManagement } from './StudentManagement';
 import { ActivityLogManagement } from './ActivityLogManagement';
+import { SidebarNav, type DashboardView } from './SidebarNav';
+import { VenuesManagement } from './VenuesManagement';
 
 const number = new Intl.NumberFormat();
 
@@ -27,7 +29,8 @@ function formatTime(value: Date | null): string {
 
 export function AdminDashboard({ session, onSignOut, isSigningOut }: AdminDashboardProps) {
   const { data, error, isLoading, updatedAt, refresh } = useAdminMetrics(session.token);
-  const [activeView, setActiveView] = useState<'dashboard' | 'staff' | 'events' | 'students' | 'audit'>('dashboard');
+  const eventOptions = useEventOptions(session.token);
+  const [activeView, setActiveView] = useState<DashboardView>('dashboard');
   const [signOutError, setSignOutError] = useState<string | null>(null);
   const admittedPercent = data && data.total_issued > 0
     ? Math.round((data.total_admitted / data.total_issued) * 100)
@@ -50,28 +53,7 @@ export function AdminDashboard({ session, onSignOut, isSigningOut }: AdminDashbo
           <span>EU<span>Event</span><small>ADMIN PORTAL</small></span>
         </a>
         <div className="sidebar-section-label">Workspace</div>
-        <nav className="sidebar-nav" aria-label="Administrator navigation">
-          <button className={activeView === 'dashboard' ? 'nav-item nav-item--active' : 'nav-item'} type="button"
-            onClick={() => setActiveView('dashboard')} aria-current={activeView === 'dashboard' ? 'page' : undefined}>
-            <Activity size={19} /><span>Live dashboard</span>
-          </button>
-          <button className={activeView === 'staff' ? 'nav-item nav-item--active' : 'nav-item'} type="button"
-            onClick={() => setActiveView('staff')} aria-current={activeView === 'staff' ? 'page' : undefined}>
-            <ShieldCheck size={19} /><span>Security staff</span>
-          </button>
-          <button className={activeView === 'students' ? 'nav-item nav-item--active' : 'nav-item'} type="button"
-            onClick={() => setActiveView('students')} aria-current={activeView === 'students' ? 'page' : undefined}>
-            <GraduationCap size={19} /><span>Students</span>
-          </button>
-          <button className={activeView === 'events' ? 'nav-item nav-item--active' : 'nav-item'} type="button"
-            onClick={() => setActiveView('events')} aria-current={activeView === 'events' ? 'page' : undefined}>
-            <CalendarDays size={19} /><span>Events &amp; gates</span>
-          </button>
-          <button className={activeView === 'audit' ? 'nav-item nav-item--active' : 'nav-item'} type="button"
-            onClick={() => setActiveView('audit')} aria-current={activeView === 'audit' ? 'page' : undefined}>
-            <ClipboardList size={19} /><span>Audit log</span>
-          </button>
-        </nav>
+        <SidebarNav activeView={activeView} onChange={setActiveView} />
         <div className="sidebar-bottom">
           <div className="sidebar-status"><span className={`status-dot ${error ? 'status-dot--amber' : ''}`} />{error ? 'Reconnecting' : 'API connection'}</div>
           <div className="profile-card">
@@ -84,7 +66,7 @@ export function AdminDashboard({ session, onSignOut, isSigningOut }: AdminDashbo
       </aside>
 
       <main className="dashboard-main" id="dashboard">
-        {activeView === 'staff' ? <SecurityStaffManagement token={session.token} /> : activeView === 'events' ? <AdminEventManagement token={session.token} /> : activeView === 'students' ? <StudentManagement token={session.token} /> : activeView === 'audit' ? <ActivityLogManagement token={session.token} /> : <>
+        {activeView === 'staff' ? <SecurityStaffManagement token={session.token} /> : activeView === 'events' ? <AdminEventManagement token={session.token} options={eventOptions} /> : activeView === 'students' ? <StudentManagement token={session.token} /> : activeView === 'venues' ? <VenuesManagement token={session.token} onVenuesChanged={eventOptions.refresh} /> : activeView === 'audit' ? <ActivityLogManagement token={session.token} /> : <>
         <header className="dashboard-header">
           <div>
             <p className="eyebrow">MSEUF · VENUE OPERATIONS</p>
