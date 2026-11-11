@@ -6,7 +6,7 @@ LAN mode (`npm run start:lan`) only works when every phone is on the same Wi-Fi 
 | --- | --- | --- |
 | Laravel API (port `8002`) | Cloudflare quick tunnel | `https://<random>.trycloudflare.com/api/v1` |
 | Admin dashboard (Vite, port `5173`) | Cloudflare quick tunnel | `https://<random>.trycloudflare.com` |
-| Expo app | Expo CLI's ngrok tunnel (`expo start --tunnel ngrok`, no Expo account needed) | QR code in the terminal |
+| Expo app (Metro, port `8081`) | Cloudflare quick tunnel, passed to Expo as `EXPO_PACKAGER_PROXY_URL` | QR code in the terminal |
 
 Quick tunnels need no Cloudflare account. Their addresses change every time the script starts.
 
@@ -32,8 +32,11 @@ Install `cloudflared` on the computer that runs the API:
    ```
 
    Add `--no-expo` (Linux) or `-NoExpo` (Windows) to open only the API and dashboard tunnels.
+   Add `--expo-ngrok` (Linux) or `-ExpoNgrok` (Windows) to use Expo's own ngrok tunnel for the app instead of Cloudflare.
 
-4. The script prints the public API and dashboard links, then starts Expo with the API link already set. Scan the Expo QR code with Expo Go from any network.
+4. The script prints the public API, dashboard, and Expo app links, then starts Expo with the API link already set. Scan the Expo QR code with Expo Go from any network. The first load can take a minute.
+
+   The app goes through Cloudflare by default because Expo's ngrok tunnel is often blocked on school and mobile networks. On those networks Expo Go shows `java.io.IOException: Failed to download remote update` and Metro logs nothing.
 5. Press `Ctrl+C` to close Expo and every tunnel.
 
 ## Phones that used the app before

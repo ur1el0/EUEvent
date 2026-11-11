@@ -1,17 +1,20 @@
 # Windows version of scripts/start-tunnels.sh.
-# Opens the Laravel API and (if running) the admin dashboard through Cloudflare quick
-# tunnels, then starts the Expo app with Expo's tunnel and the public API URL.
+# Opens the Laravel API, the admin dashboard (if running) and the Expo app (Metro, port 8081)
+# through Cloudflare quick tunnels, then starts Expo with the public API URL.
 #
 # Start the API (and optionally `npm run dev` in admin-web) first, then run from the repo root:
 #   powershell -ExecutionPolicy Bypass -File scripts\start-tunnels.ps1
 #   powershell -ExecutionPolicy Bypass -File scripts\start-tunnels.ps1 -NoExpo
+#   powershell -ExecutionPolicy Bypass -File scripts\start-tunnels.ps1 -ExpoNgrok   # Expo's own ngrok tunnel instead
 #
 # Quick-tunnel URLs change every run. Anyone with a URL can reach that service,
 # so use demo data and strong passwords. Press Ctrl+C to close every tunnel.
 param(
     [int]$ApiPort = 8002,
     [int]$DashboardPort = 5173,
-    [switch]$NoExpo
+    [int]$MetroPort = 8081,
+    [switch]$NoExpo,
+    [switch]$ExpoNgrok
 )
 
 $ErrorActionPreference = 'Stop'
@@ -109,10 +112,21 @@ try {
     if ($NoExpo) {
         Write-Host 'Tunnels are open. Press Ctrl+C to close them.'
         while ($true) { Start-Sleep -Seconds 5 }
-    } else {
+    } elseif ($ExpoNgrok) {
         Set-Location (Join-Path $RootDir 'security-scanner')
         $env:EXPO_PUBLIC_API_BASE_URL = $apiBaseUrl
         npx expo start --tunnel ngrok --go
+    } else {
+        # Expo's ngrok tunnel is often blocked on school and mobile networks, so Metro goes
+        # through a Cloudflare quick tunnel and Expo Go is told to load the app from it.
+        Write-Host 'Opening the Expo tunnel...'
+        $expoUrl = Start-QuickTunnel 'expo' $MetroPort
+        Write-Host "Expo app tunnel: $expoUrl"
+        Write-Host ''
+        Set-Location (Join-Path $RootDir 'security-scanner')
+        $env:EXPO_PUBLIC_API_BASE_URL = $apiBaseUrl
+        $env:EXPO_PACKAGER_PROXY_URL = $expoUrl
+        npx expo start --go --port $MetroPort
     }
 } finally {
     foreach ($process in $TunnelProcesses) {

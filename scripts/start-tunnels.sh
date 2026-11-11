@@ -2,11 +2,12 @@
 # Opens EUEvent to phones on any network:
 #   - Laravel API      -> Cloudflare quick tunnel (https://<random>.trycloudflare.com)
 #   - Admin dashboard  -> Cloudflare quick tunnel (only if Vite is already running)
-#   - Expo app         -> Expo CLI's ngrok tunnel (no Expo account needed), preconfigured with the API URL
+#   - Expo app         -> Cloudflare quick tunnel to Metro (port 8081), preconfigured with the API URL
 #
 # Start the API (and optionally `npm run dev` in admin-web) first, then run:
-#   bash scripts/start-tunnels.sh            # tunnels + Expo app
-#   bash scripts/start-tunnels.sh --no-expo  # tunnels only
+#   bash scripts/start-tunnels.sh               # tunnels + Expo app
+#   bash scripts/start-tunnels.sh --no-expo     # tunnels only
+#   bash scripts/start-tunnels.sh --expo-ngrok  # Expo through its own ngrok tunnel instead
 #
 # Quick-tunnel URLs change every run. Anyone with a URL can reach that service,
 # so use demo data and strong passwords. Press Ctrl+C to close every tunnel.
@@ -15,8 +16,16 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 API_PORT="${API_PORT:-8002}"
 DASHBOARD_PORT="${DASHBOARD_PORT:-5173}"
+METRO_PORT="${METRO_PORT:-8081}"
 START_EXPO=1
-[[ "${1:-}" == "--no-expo" ]] && START_EXPO=0
+EXPO_TUNNEL=cloudflare
+for arg in "$@"; do
+  case "$arg" in
+    --no-expo) START_EXPO=0 ;;
+    --expo-ngrok) EXPO_TUNNEL=ngrok ;;
+    *) echo "Unknown option: $arg (use --no-expo or --expo-ngrok)" >&2; exit 2 ;;
+  esac
+done
 
 LOG_DIR="$(mktemp -d)"
 TUNNEL_PIDS=()
@@ -102,9 +111,19 @@ echo "======================================================="
 echo "Phones that saved an older server URL must update it in the app's Server settings."
 echo
 
-if [[ "$START_EXPO" == "1" ]]; then
+if [[ "$START_EXPO" == "1" && "$EXPO_TUNNEL" == "ngrok" ]]; then
   cd "$ROOT_DIR/security-scanner"
   EXPO_PUBLIC_API_BASE_URL="$API_BASE_URL" npx expo start --tunnel ngrok --go
+elif [[ "$START_EXPO" == "1" ]]; then
+  # Expo's ngrok tunnel is often blocked on school and mobile networks, so Metro goes
+  # through a Cloudflare quick tunnel and Expo Go is told to load the app from it.
+  echo "Opening the Expo tunnel..."
+  start_tunnel expo "$METRO_PORT"
+  echo "Expo app tunnel: $TUNNEL_URL"
+  echo
+  cd "$ROOT_DIR/security-scanner"
+  EXPO_PACKAGER_PROXY_URL="$TUNNEL_URL" EXPO_PUBLIC_API_BASE_URL="$API_BASE_URL" \
+    npx expo start --go --port "$METRO_PORT"
 else
   echo "Tunnels are open. Press Ctrl+C to close them."
   wait
