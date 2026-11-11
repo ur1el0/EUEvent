@@ -4,19 +4,25 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, UserRound } from 'lucide-react-native';
 import { Button } from '../components/ui/Button';
+import { ConfirmDialog } from '../components/ui/ConfirmDialog';
+import { useAccountProfile } from '../hooks/useAccountProfile';
 import { usePalette } from '../hooks/usePalette';
-import { useStaffProfile } from '../hooks/useStaffProfile';
 import { radius, spacing, touchTarget, typography, type Palette } from '../theme';
 
+/** Account profile shared by students and security staff; the signed-in role decides the details. */
 export function ProfileScreen() {
   const palette = usePalette();
   const styles = useMemo(() => createStyles(palette), [palette]);
-  const profile = useStaffProfile();
+  const profile = useAccountProfile();
+  const { signOutDialog } = profile;
+
+  // A deep link or restored session may have nothing to go back to, so fall back to the home screen.
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
   return (
     <SafeAreaView style={styles.screen}>
       <ScrollView contentContainerStyle={styles.page}>
-        <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Back" style={styles.backButton}>
+        <Pressable onPress={goBack} accessibilityRole="button" accessibilityLabel="Back" style={styles.backButton}>
           <ArrowLeft color={palette.text} size={19} />
           <Text style={styles.backText}>Back</Text>
         </Pressable>
@@ -26,9 +32,15 @@ export function ProfileScreen() {
         <Text style={styles.title} accessibilityRole="header">Profile</Text>
 
         <View style={styles.card}>
-          <ProfileRow styles={styles} label="NAME" value={profile.name} />
-          <ProfileRow styles={styles} label="EMAIL" value={profile.emailText} />
-          <ProfileRow styles={styles} label="ROLE" value={profile.roleLabel} isLast />
+          {profile.fields.map((field, index) => (
+            <ProfileRow
+              key={field.label}
+              styles={styles}
+              label={field.label}
+              value={field.value}
+              isLast={index === profile.fields.length - 1}
+            />
+          ))}
         </View>
 
         <View style={styles.actions}>
@@ -38,12 +50,24 @@ export function ProfileScreen() {
             loadingLabel="Signing out…"
             variant="destructive"
             loading={profile.isSigningOut}
-            onPress={profile.signOut}
-            accessibilityHint="Warns you first if scans are still saved on this phone"
+            onPress={profile.requestSignOut}
           />
         </View>
-        <Text style={styles.note}>Signing out keeps unsent scans on this phone for this account.</Text>
+        <Text style={styles.note}>{profile.signOutNote}</Text>
       </ScrollView>
+      {signOutDialog ? (
+        <ConfirmDialog
+          visible={signOutDialog.visible}
+          title={signOutDialog.title}
+          message={signOutDialog.message}
+          warning={signOutDialog.warning}
+          confirmLabel={signOutDialog.confirmLabel}
+          destructive
+          busy={signOutDialog.busy}
+          onConfirm={signOutDialog.onConfirm}
+          onCancel={signOutDialog.onCancel}
+        />
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -94,7 +118,7 @@ function createStyles(palette: Palette) {
     rowLast: { borderBottomWidth: 0 },
     rowLabel: { ...typography.eyebrow, color: palette.muted, marginBottom: spacing.xs },
     rowValue: { ...typography.body, color: palette.text },
-    actions: { gap: spacing.sm + 4, marginTop: spacing.lg },
+    actions: { gap: spacing.sm + 4, marginTop: spacing.md + 7 },
     note: { ...typography.caption, color: palette.muted, marginTop: spacing.md },
   });
 }
