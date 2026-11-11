@@ -48,6 +48,8 @@ class AdminEventTicketController extends Controller
             'ticket' => [
                 'id' => $ticket->getKey(),
                 'student_number' => $ticket->user->student_number,
+                'student_name' => $ticket->user->name,
+                'student_email' => $ticket->user->email,
                 'event_gate_id' => $ticket->event_gate_id,
                 'status' => $ticket->status,
             ],

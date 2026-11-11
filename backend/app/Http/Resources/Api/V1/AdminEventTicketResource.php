@@ -24,6 +24,7 @@ class AdminEventTicketResource extends JsonResource
                 'id' => $ticket->user->getKey(),
                 'name' => $ticket->user->name,
                 'student_number' => $ticket->user->student_number,
+                'email' => $ticket->user->email,
             ],
             'gate' => [
                 'event_gate_id' => $ticket->event_gate_id,

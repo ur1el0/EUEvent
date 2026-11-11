@@ -21,7 +21,7 @@ class AdminEventTicketRevocationService
                 $query->where('event_id', $event->getKey());
             })
             ->with([
-                'user:id,name,student_number',
+                'user:id,name,email,student_number',
                 'eventGate.venueGate',
             ])
             ->orderBy('id')
@@ -83,7 +83,7 @@ class AdminEventTicketRevocationService
             );
 
             return $ticket->load([
-                'user:id,name,student_number',
+                'user:id,name,email,student_number',
                 'eventGate.venueGate',
             ]);
         }, 3);
