@@ -1,0 +1,57 @@
+/* Shared buttons, dialog, status badges and notices used by the newer admin workspaces. */
+.btn { min-height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid transparent; border-radius: 16px; padding: 0 16px; font-size: 12px; font-weight: 700; transition: background .16s ease, transform .16s ease; }
+.btn:hover:not(:disabled) { transform: translateY(-1px); }
+.btn:disabled { cursor: not-allowed; opacity: .6; }
+.btn--primary { color: #fff; background: #481c1c; }
+.btn--primary:hover:not(:disabled) { background: #1c0808; }
+.btn--secondary { color: #533330; background: #fff; border-color: #e5d6d2; }
+.btn--secondary:hover:not(:disabled) { background: #fbf5f3; border-color: #bd8a7d; }
+.btn--danger { color: #fff; background: #b34335; }
+.btn--danger:hover:not(:disabled) { background: #8c2b25; }
+.btn--compact { min-height: 40px; border-radius: 12px; padding: 0 11px; font-size: 11px; }
+.btn--text-danger { color: #8c2b25; background: #fff; border-color: #edc2bb; }
+.btn--text-danger:hover:not(:disabled) { background: #fff4f1; border-color: #dc9c91; }
+.btn:focus-visible { outline: 3px solid #e3a91c; outline-offset: 3px; }
+
+.confirm-dialog { margin: auto; width: min(520px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; padding: 0; border: 1px solid #eadfdd; border-radius: 20px; color: #2a1010; background: #fff; box-shadow: 0 24px 70px rgb(28 8 8 / 28%); }
+.confirm-dialog::backdrop { background: rgb(28 8 8 / 58%); }
+.confirm-dialog__form { display: grid; gap: 14px; padding: 22px; }
+.confirm-dialog h2 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -.03em; }
+.confirm-dialog__body { display: grid; gap: 10px; color: #533330; font-size: 13px; line-height: 1.55; }
+.confirm-dialog__body p { margin: 0; }
+.confirm-dialog__reason { display: grid; gap: 6px; }
+.confirm-dialog__reason label { color: #533330; font-size: 12px; font-weight: 700; }
+.confirm-dialog__reason textarea { width: 100%; min-height: 76px; padding: 9px 11px; border: 1px solid #eadfdd; border-radius: 13px; color: #2a1010; background: #fff; font: inherit; resize: vertical; }
+.confirm-dialog__reason textarea:focus { border-color: #d59c1b; outline: 3px solid rgb(255 203 47 / 19%); }
+.confirm-dialog__reason p { margin: 0; color: #806c68; font-size: 12px; }
+.confirm-dialog__error { display: flex; align-items: center; gap: 8px; margin: 0; padding: 10px 12px; border-radius: 12px; color: #8c2b25; background: #fff0ed; font-size: 12px; font-weight: 600; }
+.confirm-dialog__actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; }
+.dialog-warning { display: flex; gap: 8px; padding: 10px 12px; border-radius: 12px; color: #805716; background: #fff7e7; font-size: 12px; }
+.dialog-warning svg { flex: 0 0 auto; margin-top: 2px; }
+.change-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.change-list li { display: grid; gap: 2px; padding: 9px 11px; border: 1px solid #f0e6e3; border-radius: 12px; background: #fffdfc; font-size: 12px; }
+.change-list strong { color: #38201e; }
+.change-list s { color: #806c68; }
+
+.status-badge { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 6px 11px; font-size: 10px; font-weight: 700; letter-spacing: .04em; }
+.status-badge--draft { color: #6f625d; background: #f0eae7; }
+.status-badge--scheduled, .status-badge--postponed { color: #805716; background: #fff2d5; }
+.status-badge--in_progress { color: #17663c; background: #e8f6ed; }
+.status-badge--cancelled { color: #9a342c; background: #fff0ed; }
+.status-badge--completed { color: #4f6262; background: #e9f0f0; }
+.status-explainer { margin: 0; color: #806c68; font-size: 12px; line-height: 1.5; }
+.lifecycle-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; }
+.lifecycle-hint { margin: 0; color: #806c68; font-size: 12px; }
+.form-actions { display: flex; flex-wrap: wrap; gap: 10px; grid-column: 2; }
+.field-error { margin: 0; color: #8c2b25; font-size: 12px; font-weight: 600; }
+.field-error::before { content: "! "; }
+input[aria-invalid="true"] { border-color: #b34335 !important; }
+.staff-actions { display: flex; flex: 0 0 auto; flex-wrap: wrap; gap: 8px; }
+.event-form .field-error { grid-column: 1 / -1; }
+.event-form--stacked { grid-template-columns: minmax(0, 1fr); }
+
+@media (max-width: 760px) {
+  .event-form .form-actions { grid-column: 1; }
+  .confirm-dialog__actions .btn { flex: 1 1 100%; }
+  .staff-list-item, .students-list-item { flex-wrap: wrap; }
+}

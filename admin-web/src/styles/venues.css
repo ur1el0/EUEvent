@@ -1,0 +1,28 @@
+.venues-view { display: grid; align-content: start; gap: 18px; min-height: 100%; }
+.venues-layout { display: grid; grid-template-columns: minmax(260px, .8fr) minmax(0, 1.4fr); align-items: start; gap: 15px; }
+.venue-create-panel { display: grid; gap: 14px; }
+.venue-list { display: grid; gap: 15px; margin: 0; padding: 0; list-style: none; }
+.venue-card { display: grid; gap: 14px; }
+.venue-card .panel-heading h2 { overflow-wrap: anywhere; }
+.venue-location { display: flex; align-items: center; gap: 7px; margin: 0; color: #806c68; font-size: 12px; }
+.venue-gates { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.venue-gates__empty { color: #806c68; font-size: 12px; }
+.venue-gate { display: flex; align-items: center; gap: 11px; padding: 9px 11px; border: 1px solid #f0e6e3; border-radius: 14px; background: #fffdfc; }
+.venue-gate__copy { display: grid; gap: 2px; min-width: 0; flex: 1; font-size: 12px; }
+.venue-gate__copy strong { color: #38201e; }
+.venue-gate__copy span { color: #806c68; overflow-wrap: anywhere; }
+.venue-form, .gate-form { display: grid; gap: 11px; }
+.gate-form { padding: 11px; border: 1px solid #eadfdd; border-radius: 14px; background: #fffdfc; }
+.form-field { display: grid; gap: 6px; }
+.form-field label { color: #533330; font-size: 12px; font-weight: 700; }
+.form-field label span { color: #9a817b; font-size: 11px; font-weight: 600; }
+.form-field input, .form-field textarea { width: 100%; min-width: 0; min-height: 41px; padding: 8px 11px; border: 1px solid #eadfdd; border-radius: 13px; color: #2a1010; background: #fff; font: inherit; }
+.form-field textarea { resize: vertical; }
+.form-field input:focus, .form-field textarea:focus { border-color: #d59c1b; outline: 3px solid rgb(255 203 47 / 19%); }
+.form-actions-row { display: flex; flex-wrap: wrap; gap: 9px; }
+.venue-add-gate { justify-self: start; }
+
+@media (max-width: 760px) {
+  .venues-layout { grid-template-columns: minmax(0, 1fr); }
+  .venue-gate { flex-wrap: wrap; }
+}

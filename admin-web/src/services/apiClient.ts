@@ -1,5 +1,5 @@
 export class ApiError extends Error {
-  constructor(message: string, readonly status: number) {
+  constructor(message: string, readonly status: number, readonly errors: Record<string, string[]> = {}) {
     super(message);
     this.name = 'ApiError';
   }
@@ -9,7 +9,7 @@ const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '/api/v1').replace(/\/$
 
 interface RequestOptions {
   token?: string;
-  method?: 'GET' | 'POST' | 'PUT' | 'PATCH';
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
 }
 
@@ -30,8 +30,17 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
   if (!response.ok) {
     const validationMessage = payload?.errors ? Object.values(payload.errors).flat()[0] : undefined;
-    throw new ApiError(validationMessage || payload?.message || 'Request failed (' + response.status + ').', response.status);
+    throw new ApiError(
+      validationMessage || payload?.message || 'Request failed (' + response.status + ').',
+      response.status,
+      payload?.errors ?? {},
+    );
   }
 
   return payload as T;
+}
+
+/** The first server validation message for one field, if the request failed with a 422 for it. */
+export function fieldError(error: unknown, field: string): string | undefined {
+  return error instanceof ApiError ? error.errors[field]?.[0] : undefined;
 }
