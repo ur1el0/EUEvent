@@ -10,6 +10,7 @@ use App\Models\Ticket;
 use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenueGate;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
@@ -97,6 +98,75 @@ class SyncBatchReconciliationTest extends TestCase
         $this->assertDatabaseHas('tickets', [
             'id' => $fixture['ticket']->id,
             'status' => Ticket::STATUS_CLAIMED,
+        ]);
+    }
+
+    public function test_a_second_scan_with_a_new_identifier_is_recorded_as_a_split_brain_collision(): void
+    {
+        $fixture = $this->createScanFixture();
+        Sanctum::actingAs($fixture['staff']);
+        $firstScanId = (string) Str::uuid();
+        $secondScanId = (string) Str::uuid();
+
+        $this->syncScans([$this->scanPayload($fixture, $firstScanId)])
+            ->assertOk()
+            ->assertJsonPath('outcomes.0.decision', 'accepted');
+
+        $this->syncScans([$this->scanPayload($fixture, $secondScanId)])
+            ->assertOk()
+            ->assertJsonPath('outcomes.0.decision', 'rejected')
+            ->assertJsonPath('outcomes.0.reason_code', 'SPLIT_BRAIN_COLLISION')
+            ->assertJsonPath('anomalies_logged', 1);
+
+        $this->assertDatabaseCount('scan_logs', 2);
+        $this->assertDatabaseHas('scan_logs', [
+            'scan_id' => $secondScanId,
+            'decision' => 'rejected',
+            'reason_code' => 'SPLIT_BRAIN_COLLISION',
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'ticket_id' => $fixture['ticket']->id,
+            'anomaly_type' => AuditLog::ANOMALY_SPLIT_BRAIN_COLLISION,
+            'colliding_scan_id' => $secondScanId,
+        ]);
+    }
+
+    public function test_a_scan_that_occurred_during_a_completed_event_can_sync_later(): void
+    {
+        $fixture = $this->createScanFixture(eventStatus: Event::STATUS_COMPLETED);
+        $event = $fixture['scannedGate']->event;
+        $event->starts_at = CarbonImmutable::createFromTimestamp(20, 'UTC');
+        $event->ends_at = CarbonImmutable::createFromTimestamp(40, 'UTC');
+        $event->save();
+        Sanctum::actingAs($fixture['staff']);
+
+        $this->syncScans([$this->scanPayload($fixture, (string) Str::uuid())])
+            ->assertOk()
+            ->assertJsonPath('outcomes.0.decision', 'accepted');
+
+        $this->assertDatabaseHas('tickets', [
+            'id' => $fixture['ticket']->id,
+            'status' => Ticket::STATUS_CLAIMED,
+        ]);
+    }
+
+    public function test_a_completed_event_rejects_a_scan_outside_its_scheduled_window(): void
+    {
+        $fixture = $this->createScanFixture(eventStatus: Event::STATUS_COMPLETED);
+        $event = $fixture['scannedGate']->event;
+        $event->starts_at = CarbonImmutable::createFromTimestamp(40, 'UTC');
+        $event->ends_at = CarbonImmutable::createFromTimestamp(60, 'UTC');
+        $event->save();
+        Sanctum::actingAs($fixture['staff']);
+
+        $this->syncScans([$this->scanPayload($fixture, (string) Str::uuid())])
+            ->assertOk()
+            ->assertJsonPath('outcomes.0.decision', 'rejected')
+            ->assertJsonPath('outcomes.0.reason_code', 'EVENT_NOT_ACTIVE');
+
+        $this->assertDatabaseHas('tickets', [
+            'id' => $fixture['ticket']->id,
+            'status' => Ticket::STATUS_ISSUED,
         ]);
     }
 
