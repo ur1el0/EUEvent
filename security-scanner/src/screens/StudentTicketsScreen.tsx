@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { router } from 'expo-router';
 import {
   ActivityIndicator,
   Image,
@@ -10,17 +9,16 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CloudOff, KeyRound, LogOut, RefreshCw, TicketCheck } from 'lucide-react-native';
+import { CloudOff, TicketCheck } from 'lucide-react-native';
 import { TicketCard } from '../components/student/TicketCard';
-import { ConfirmDialog } from '../components/ui/ConfirmDialog';
-import { IconLabelButton } from '../components/ui/IconLabelButton';
+import { ProfileIconButton } from '../components/ui/ProfileIconButton';
+import { RefreshIconButton } from '../components/ui/RefreshIconButton';
 import { useStudentTickets } from '../hooks/useStudentTickets';
 import { colors, fonts } from '../theme';
 
 export function StudentTicketsScreen() {
   const [isPassOpen, setIsPassOpen] = useState(false);
-  const { firstName, tickets, message, isOffline, isLoading, isRefreshing, isSigningOut, refresh, signOut } = useStudentTickets({ isPassOpen });
-  const { warning } = signOut;
+  const { firstName, tickets, message, isOffline, isLoading, isRefreshing, refresh } = useStudentTickets({ isPassOpen });
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -37,11 +35,10 @@ export function StudentTicketsScreen() {
             <Text style={styles.brandCaption}>STUDENT TICKETS</Text>
           </View>
         </View>
-      </View>
-      <View style={styles.headerActions}>
-        <IconLabelButton icon={RefreshCw} label="Refresh" tone="muted" onPress={refresh} accessibilityLabel="Refresh tickets" />
-        <IconLabelButton icon={KeyRound} label="Password" tone="muted" onPress={() => router.push('/change-password')} accessibilityLabel="Change password" />
-        <IconLabelButton icon={LogOut} label="Sign out" tone="muted" onPress={signOut.request} />
+        <View style={styles.headerActions}>
+          <RefreshIconButton onPress={refresh} isRefreshing={isRefreshing} accessibilityLabel="Refresh tickets" />
+          <ProfileIconButton />
+        </View>
       </View>
 
       <View style={styles.greeting}>
@@ -96,17 +93,6 @@ export function StudentTicketsScreen() {
       </View>
       <Text style={styles.footer}>EUEvent · Student entry pass</Text>
       </ScrollView>
-      <ConfirmDialog
-        visible={signOut.isConfirming}
-        title={warning.title}
-        message={warning.message}
-        warning={warning.offlineWarning}
-        confirmLabel={warning.confirmLabel}
-        destructive
-        busy={isSigningOut}
-        onConfirm={signOut.confirm}
-        onCancel={signOut.cancel}
-      />
     </SafeAreaView>
   );
 }
@@ -114,13 +100,13 @@ export function StudentTicketsScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 32 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   logo: { width: 42, height: 42, borderRadius: 13 },
   wordmark: { color: colors.text, fontFamily: fonts.headingStrong, fontSize: 17, letterSpacing: 0.3 },
   wordmarkGold: { color: colors.gold },
   brandCaption: { color: colors.muted, fontFamily: fonts.bodyBold, fontSize: 8, letterSpacing: 1.45 },
-  headerActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginLeft: -8, marginBottom: 20 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   greeting: { marginBottom: 15 },
   eyebrow: { color: colors.gold, fontFamily: fonts.bodyBold, fontSize: 10, letterSpacing: 1.7, marginBottom: 5 },
   title: { color: colors.text, fontFamily: fonts.headingStrong, fontSize: 34, lineHeight: 39 },

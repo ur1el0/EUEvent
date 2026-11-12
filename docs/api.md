@@ -39,7 +39,7 @@ This document records the API conventions for this project and marks which route
 | `PATCH /api/v1/admin/security-staff/{staff}/status` | Administrator | Activates/deactivates one security staff account. Deactivation revokes server-side API tokens and writes an admin activity record. A disconnected scanner cannot receive the change until it reconnects. |
 | `GET /api/v1/admin/activity-logs` | Administrator | Returns recent account, event-change, scan-decision, and anomaly activity with filters. |
 
-For exact response fields, inspect the matching Laravel controller and API Resource. The login response currently has `token` and `user`; it does not promise the extra `token_type`, `email`, `created_at`, or `student_id` fields shown in the reference. The metrics resource currently reports `pending_sync_estimate: null` because scanner heartbeat counts are not implemented. Clients must render this as unavailable, not zero.
+For exact response fields, inspect the matching Laravel controller and API Resource. The login response has `token` and `user`. `user` contains `id`, `student_number`, `name`, `email`, and `role`, and `GET /api/v1/auth/me` returns the same `user` object. `email` was added without renaming or removing any other field; a client talking to an older API may not receive it and must tolerate its absence. The response never contains a password, remember token, or other tokens, and it does not promise the extra `token_type`, `created_at`, or `student_id` fields shown in the reference. The metrics resource currently reports `pending_sync_estimate: null` because scanner heartbeat counts are not implemented. Clients must render this as unavailable, not zero.
 
 ## Mobile password recovery
 

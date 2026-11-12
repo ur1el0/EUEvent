@@ -73,7 +73,7 @@ class AuthController extends Controller
     }
 
     /**
-     * @return array{id: int, name: string, student_number: string|null, role: string}
+     * @return array{id: int, student_number: string|null, name: string, email: string, role: string}
      */
     private function userPayload(User $user): array
     {
@@ -81,6 +81,7 @@ class AuthController extends Controller
             'id' => $user->getKey(),
             'student_number' => $user->student_number,
             'name' => $user->name,
+            'email' => $user->email,
             'role' => $user->role,
         ];
     }

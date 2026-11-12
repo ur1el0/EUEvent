@@ -10,7 +10,7 @@ type SecuritySession = {
   token: string | null;
   serverUrl: string;
   isRestoring: boolean;
-  signIn: (identifier: string, password: string, expectedRole: 'student' | 'security_staff') => Promise<void>;
+  signIn: (identifier: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   updateServerUrl: (url: string) => Promise<boolean>;
 };
@@ -96,8 +96,8 @@ export function SecuritySessionProvider({ children }: { children: React.ReactNod
     return () => { active = false; };
   }, []);
 
-  const signIn = useCallback(async (identifier: string, password: string, expectedRole: 'student' | 'security_staff') => {
-    const payload = await signInWithPassword(identifier, password, expectedRole);
+  const signIn = useCallback(async (identifier: string, password: string) => {
+    const payload = await signInWithPassword(identifier, password);
     await Promise.all([
       sessionStorage.saveToken(payload.token),
       sessionStorage.saveUser(payload.user),

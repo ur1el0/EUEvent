@@ -3,7 +3,6 @@ import { useSecuritySession } from './useSecuritySession';
 import { useTicketPolling } from './useTicketPolling';
 import { ApiError } from '../services/apiClient';
 import { fetchStudentTickets, type StudentTicket } from '../services/studentTickets';
-import { getSignOutWarning } from '../services/signOutWarning';
 import { loadStudentTicketCache, saveStudentTicketCache } from '../services/studentTicketStorage';
 import { sortTicketsForDisplay } from '../services/ticketStatus';
 
@@ -17,8 +16,6 @@ export function useStudentTickets({ isPassOpen = false }: { isPassOpen?: boolean
   const [lastFetchFailed, setLastFetchFailed] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isSigningOut, setIsSigningOut] = useState(false);
-  const [isConfirmingSignOut, setIsConfirmingSignOut] = useState(false);
   const ticketsRef = useRef<StudentTicket[]>([]);
   const isFetchingRef = useRef(false);
 
@@ -86,14 +83,6 @@ export function useStudentTickets({ isPassOpen = false }: { isPassOpen?: boolean
   const isStudent = user?.role === 'student' && Boolean(token);
   useTicketPolling({ isStudent, isPassOpen, lastFetchFailed, tickets, refreshSilently: () => void loadTickets(false, true) });
 
-  // Signing out deletes the saved tickets on this phone, so it always asks first.
-  async function confirmSignOut() {
-    setIsSigningOut(true);
-    await session.signOut();
-    setIsSigningOut(false);
-    setIsConfirmingSignOut(false);
-  }
-
   const sortedTickets = useMemo(() => sortTicketsForDisplay(tickets), [tickets]);
 
   return {
@@ -103,14 +92,6 @@ export function useStudentTickets({ isPassOpen = false }: { isPassOpen?: boolean
     isOffline,
     isLoading,
     isRefreshing,
-    isSigningOut,
     refresh: () => void loadTickets(true),
-    signOut: {
-      isConfirming: isConfirmingSignOut,
-      warning: getSignOutWarning(isOffline),
-      request: () => setIsConfirmingSignOut(true),
-      cancel: () => setIsConfirmingSignOut(false),
-      confirm: () => void confirmSignOut(),
-    },
   };
 }
