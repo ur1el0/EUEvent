@@ -16,8 +16,10 @@ export function validateSyncResponse(value: unknown, batch: PendingScan[]): Serv
   }
 
   const expectedIds = new Set(batch.map((scan) => scan.scan_id));
-  const acknowledgedIds = new Set(payload.acknowledged_scan_ids.filter((id): id is string => typeof id === 'string'));
-  if (acknowledgedIds.size !== batch.length || batch.some((scan) => !acknowledgedIds.has(scan.scan_id))) {
+  const acknowledgements = payload.acknowledged_scan_ids;
+  if (acknowledgements.length !== batch.length
+    || acknowledgements.some((id) => typeof id !== 'string' || !expectedIds.has(id))
+    || new Set(acknowledgements).size !== acknowledgements.length) {
     throw new Error('The event server acknowledged an incomplete scan batch. Scans remain saved on this device.');
   }
 
