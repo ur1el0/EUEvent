@@ -28,7 +28,8 @@ export function isStudentTicket(value: unknown): value is StudentTicket {
 
   return Number.isInteger(ticket.id)
     && (ticket.status === 'issued' || ticket.status === 'claimed' || ticket.status === 'revoked')
-    && (typeof ticket.totp_secret === 'string' || ticket.totp_secret === null)
+    && ((typeof ticket.totp_secret === 'string' && ticket.totp_secret.length > 0)
+      || ticket.totp_secret === null)
     && typeof gate === 'object'
     && gate !== null
     && Number.isInteger(gate.id)
