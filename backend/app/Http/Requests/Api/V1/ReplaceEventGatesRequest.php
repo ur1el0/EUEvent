@@ -35,7 +35,7 @@ class ReplaceEventGatesRequest extends FormRequest
                 Rule::exists('venue_gates', 'id')->where('venue_id', $venueId),
             ],
             'gates.*.capacity' => ['nullable', 'integer', 'min:1'],
-            'gates.*.security_staff_ids' => ['required', 'array', 'max:50'],
+            'gates.*.security_staff_ids' => ['present', 'array', 'max:50'],
             'gates.*.security_staff_ids.*' => [
                 'required',
                 'integer',
