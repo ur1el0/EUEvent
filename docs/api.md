@@ -121,9 +121,9 @@ Each `POST /api/v1/sync/batch` record contains `scan_id`, `ticket_id`, `gate_id`
 
 The client encrypts queued records in SQLite, sends at most 50 per request, and erases each local code proof after the server acknowledges it. A valid offline scan remains provisional until this response arrives. Reconciliation rejects scans for cancelled/postponed events and can accept scans uploaded after an event is completed only when the device-reported scan time falls within the event schedule.
 
-## Routes still to design
+## Out-of-current-scope API capabilities
 
-The current backend does **not** yet expose the full product API. Historical audit export/cursor pagination, and scanner heartbeat/pending-sync telemetry remain planned. The current activity endpoint is limited to the newest 100 matching records. Do not present the future capabilities as implemented. Do not copy the reference's `registrations`, `access_points`, `/me/tickets`, or `/staff/events/.../admissions` names without a deliberate schema and ADR review.
+The implemented MVP API is the contract listed in this guide. Historical audit export/cursor pagination and scanner heartbeat/pending-sync telemetry are outside the agreed scope; the current activity endpoint is limited to the newest 100 matching records, and `pending_sync_estimate: null` means unavailable rather than zero. Do not promise those capabilities or copy the reference's `registrations`, `access_points`, `/me/tickets`, or `/staff/events/.../admissions` names without a deliberate schema and ADR review.
 
 ## Rules for new endpoints
 

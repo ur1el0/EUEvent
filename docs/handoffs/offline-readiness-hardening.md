@@ -1,5 +1,7 @@
 # Offline Readiness Hardening: Developer Handoff
 
+> **Historical handoff:** This document records the implementation plan and checks for the hardening branch/PR. The agreed MVP feature changes described here have since merged into `main`. Use [current system status](../../.agents/PHASES.md) and the [post-MVP operational backlog](../presentation/03-post-mvp-operational-follow-up.md) for present-day status; the open validation items below are evidence to collect, not missing MVP code features.
+
 This handoff covers the account-recovery, scanner-staff lifecycle, and offline-scan changes in PR [#12](https://github.com/ur1el0/mseuf-offline-ticketing/pull/12). It is for developers who will review, integrate, configure, and validate those changes.
 
 ## Scope and current state

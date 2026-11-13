@@ -1,5 +1,7 @@
 # Event-day offline operations runbook
 
+The agreed MVP feature scope is implemented. This runbook covers operational decisions the software cannot make for a disconnected venue; local scan approvals remain provisional until reconciliation.
+
 This runbook is for event leads and gate staff using EUEvent scanners at a real event. It describes what the software does today and what people must handle themselves. It is based on [ADR 012](../architecture/decisions/012-current-step-totp-and-replay-boundary.md) (QR replay boundary), [ADR 013](../architecture/decisions/013-manual-exception-procedure-without-pin-override.md) (manual exceptions, no PIN override), [ADR 014](../architecture/decisions/014-offline-manifest-freshness-policy.md) (manifest freshness), and the [offline readiness handoff](handoffs/offline-readiness-hardening.md).
 
 Read the [offline limits](#offline-limits) section before the event. The rest of this document depends on it.

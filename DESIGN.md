@@ -67,7 +67,7 @@ The visual language avoids generic cold tech aesthetics in favor of warm, tactil
 **Key Characteristics:**
 - **Institutional Dignity:** Deep Maroon (`#481c1c`) and Saffron Gold (`#ffcb2f`) identity hierarchy.
 - **High-Readability Telemetry:** Micro-eyebrows with uppercase letter-spacing (`.13em`) paired with high-impact numbers.
-- **Unambiguous Status Color:** Color coding reserved strictly for state verification (Emerald = Valid, Amber = Override/Warning, Crimson = Collision Anomaly).
+- **Unambiguous Status Color:** Color coding reserved strictly for state verification (Emerald = Valid/Connected, Amber = Warning or Needs Review, Crimson = Rejected or Duplicate/Collision).
 - **Tactile Softness:** Soft ambient shadows (`box-shadow: 0 8px 28px rgb(42 16 16 / 4%)`) paired with explicit 1px surface borders (`#eadfdd`).
 
 ---
@@ -84,8 +84,8 @@ The palette is grouped into distinct institutional, status, and canvas surfaces.
 
 ### Status & Telemetry
 - **Admission Emerald** (`#20823a` / `#2bb879`): Indicates valid offline scans, active connections, and successful sync processing.
-- **Override Amber** (`#e8a72d` / `#fff2d5`): Indicates PIN-authenticated marshal overrides and warning states.
-- **Collision Crimson** (`#b34335` / `#fff0ed`): Highlights split-brain double-scan anomalies, gate mismatches, and severe security alerts.
+- **Review Amber** (`#e8a72d` / `#fff2d5`): Indicates warnings, pending reconciliation, and items that need an event lead's review. There is no PIN-authenticated marshal override in the current MVP.
+- **Collision Crimson** (`#b34335` / `#fff0ed`): Highlights rejected scans, duplicate claims found during synchronization, gate mismatches, and severe security alerts. Offline scanners cannot identify cross-device duplicates until synchronization.
 
 ### Neutral
 - **Warm Canvas** (`#f4f1ef`): Main application background providing warm contrast without harsh white glare.

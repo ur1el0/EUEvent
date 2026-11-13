@@ -4,7 +4,9 @@
 
 EUEvent helps university event teams issue student tickets, configure gate-specific access, validate tickets at venue entrances, and reconcile admission records after connectivity returns. The system has a Laravel API backed by PostgreSQL, a React administrator dashboard, and an Expo mobile app for students and security staff.
 
-This repository is an MVP. Offline admission is **provisional until scanner records synchronize**. A disconnected scanner can validate only against the manifest and ticket state saved on that device. The system does not currently prevent every screenshot replay or globally enforce single use across disconnected scanners.
+The team considers implementation of the agreed MVP scope complete. The codebase provides a Laravel API, a React administrator dashboard, and an Expo mobile app for students and security staff. Operational readiness still depends on environment- and venue-specific checks; completion does not mean production certification.
+
+Offline admission is **provisional until scanner records synchronize**. A disconnected scanner can validate only against the manifest and ticket state saved on that device. The system does not prevent every screenshot replay or globally enforce single use across disconnected scanners.
 
 ## 2. End-user roles
 
@@ -53,10 +55,14 @@ The system cannot coordinate single use between two devices that are both discon
 - The local scanner can check a cached manifest without Internet. It still needs the Expo app runtime available; Expo Go may lose its JavaScript bundle if the local Metro network is lost. Use an installed build for demonstrations that must survive Wi-Fi loss.
 - Mail recovery requires a working mail transport configured on the event server. Password reset requests use a generic response so the API does not disclose whether an eligible account exists.
 
-## 6. Out of current MVP scope
+## 6. Accepted limits and out-of-scope capabilities
+
+These are known limits of the completed MVP, not unfinished claims to hide from users or event operators:
 
 - Screenshot-proof tickets or a global anti-replay guarantee across offline devices.
 - Remote revocation delivery to disconnected phones.
 - Marshal PIN overrides or automatic exception admission.
-- Production load guarantees, high availability, multi-region deployment, or measured accessibility conformance.
+- Production load guarantees, high availability, multi-region deployment, or measured accessibility conformance. These require a separate deployment and assurance plan.
 - Automatic physical resolution of conflicting offline admissions.
+
+For current release and venue-readiness checks, see [system status](PHASES.md), the [post-MVP operational backlog](backlog.md), and the [event-day runbook](../docs/event-day-runbook.md).

@@ -2,6 +2,8 @@
 
 EUEvent is the MSEUF event ticketing and gate-access system. Laravel is the authoritative API and database layer. A browser dashboard handles administration; one Expo mobile app provides student ticket wallets and the security scanner.
 
+**Project status:** The team considers the agreed MVP feature scope complete. The implementation includes the administrator, student, and security-staff workflows below. Offline decisions remain provisional until server sync, and production deployment still requires the environment-specific checks in [system status](.agents/PHASES.md) and the [event-day runbook](docs/event-day-runbook.md).
+
 ## End-user roles
 
 - **Students** sign in on mobile and display their issued event tickets. Each ticket shows a short-lived QR proof that rotates every 30 seconds.
@@ -31,7 +33,7 @@ The shared development environment can use Supabase PostgreSQL. Fedora presentat
 
 ## Local presentation setup on Fedora
 
-Requirements: PHP 8.5, Composer, Node.js 22 with npm, Lerd with its PostgreSQL service, and Expo Go on a phone connected to the same Wi-Fi network.
+Requirements: PHP 8.5, Composer, Node.js 22 with npm, Lerd with its PostgreSQL service, and either Expo Go or an installed Android APK. Expo Go requires the phone and Fedora machine to share the local development network; the installed app does not need Metro.
 
 1. Install backend dependencies and prepare the isolated demo database:
 
@@ -67,7 +69,7 @@ Requirements: PHP 8.5, Composer, Node.js 22 with npm, Lerd with its PostgreSQL s
 
    For the isolated presentation API, set `VITE_BACKEND_ORIGIN=http://127.0.0.1:8002` in `admin-web/.env`. Open the Vite address printed in the terminal. Create student and staff accounts through the dashboard before issuing tickets.
 
-4. Start the mobile app:
+4. Start the mobile app in development mode:
 
    ```bash
    cd security-scanner
@@ -75,7 +77,7 @@ Requirements: PHP 8.5, Composer, Node.js 22 with npm, Lerd with its PostgreSQL s
    npm run start:lan
    ```
 
-   The launcher checks the API, detects Fedora's current LAN IP, and passes the API address to Expo Go. Scan the Expo QR code with the phone. If the app has an old server URL saved, update it in the app's server settings.
+   The launcher checks the API, detects Fedora's current LAN IP, and passes the API address to Expo Go. Scan the Expo QR code with the phone. If the app has an old server URL saved, update it in the app's server settings. For a standalone Android install, follow [the APK build and USB install guide](security-scanner/README.md#build-and-install-an-android-apk).
 
 For the complete presentation database safeguards and network notes, see [backend local presentation instructions](backend/README.md#local-presentation-mode).
 
@@ -99,7 +101,8 @@ Build the dashboard from `admin-web/` with `npm run build`. Check the Expo app w
 
 - [Complete Fedora, Lerd, Supabase, admin-web, and Expo setup guide](docs/setup-guide.md)
 - [Sharing the API, dashboard, and app with phones on any network (tunnels)](docs/tunnel-guide.md)
-- [Presentation run of show, system walkthrough, roadmap, and speaker notes](docs/presentation/README.md)
+- [Presentation run of show, system walkthrough, post-MVP follow-up, and speaker notes](docs/presentation/README.md)
+- [Current completion status and operational checks](.agents/PHASES.md)
 - [Backend API and demo setup](backend/README.md)
 - [Administrator dashboard](admin-web/README.md)
 - [Student and scanner mobile app](security-scanner/README.md)

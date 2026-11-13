@@ -4,7 +4,7 @@
 
 ## 1. Cryptographic Model: Dynamic TOTP Verification
 
-Traditional event ticketing systems that present static QR codes are vulnerable to instantaneous screenshot theft via messaging apps. The MSEUF system enforces offline dynamic QR tokens via RFC 6238 TOTP:
+EUEvent uses RFC 6238 TOTP to rotate the ticket QR every 30 seconds. This limits the useful lifetime of a copied image; it does not eliminate screenshot replay during the active step or coordinate claims between disconnected scanners.
 
 $$C_0 = \left\lfloor \frac{T - T_0}{T_X} \right\rfloor$$
 
@@ -19,13 +19,13 @@ Attendee smartphone clocks are untrusted. If an attendee deliberately rolls back
 
 ---
 
-## 2. Idempotency & Replay Defense (`scan_id`)
+## 2. Retry idempotency and replay boundary (`scan_id`)
 
 During network instability, HTTP acknowledgments are often dropped. 
 * To prevent duplicate counts or false double-spending alarms, the mobile scanner assigns a UUID v4 `scan_id` at the moment of scan.
 * If a network batch fails to receive a `200 OK`, the client retries the same `scan_id` and one-time QR proof.
 * The server recognizes the existing `scan_id` via `UNIQUE (scan_id)` and returns its original decision without re-incrementing gate counts or creating false collision alerts.
-* QR code/step values are checked against the ticket's decrypted secret during reconciliation and never written to scan logs. They are erased from the local queue after acknowledgment.
+* QR code/step values are checked against the ticket's decrypted secret during reconciliation and never written to scan logs. They are erased from the local queue after acknowledgment. This protects retries of one captured scan; it does not stop another offline device from making a different scan ID for the same ticket.
 
 ---
 
