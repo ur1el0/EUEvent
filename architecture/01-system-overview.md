@@ -7,7 +7,7 @@ The **MSEUF Events Offline Ticketing System** is an offline-first cryptographic 
 
 The system has exactly three end-user roles: Students use a mobile app to present securely stored rotating tickets; Security Staff use an offline mobile scanner app at venue doors to validate tickets and manage physical access; Administrators use a desktop web dashboard to set up events, manage gate assignments, and monitor system logs. Gate marshal override is a Security Staff duty, not a separate role.
 
-University venue gates (e.g., University Gymnasium, Main Gate, Sports Complex) frequently experience complete cellular blackout or severe bandwidth throttling during mass crowd ingress. The system guarantees sub-second attendee admission verification with zero live network dependency, while eliminating screenshot fraud, double-spending, and multi-device split-brain synchronization anomalies.
+The offline workflow is designed to keep a prepared scanner usable during an API outage. This document is a historical design reference, not a performance claim: latency has not been published from representative measurements. Offline approval is provisional, a screenshot from the active 30-second step may be replayed, and disconnected scanners can accept the same ticket before server reconciliation identifies a collision. Operators must follow the [event-day runbook](../docs/event-day-runbook.md) for event changes and exceptions.
 
 ---
 
@@ -23,13 +23,13 @@ To satisfy academic midterm assessment criteria requiring strict MVC adherence w
 │   - Cryptographic Seed Issuance         - Sync Reconciliation          - HTTP Polling   │
 │   - Authoritative Tie-Breakers          - Audit Logging                                 │
 └────────────────────────────────────────────┬────────────────────────────────────────────┘
-                                             │ Opportunistic Sync / Periodic Heartbeat
+                                             │ Opportunistic batch synchronization
                                              ▼
 ┌─────────────────────────────────────────────────────────────────────────────────────────┐
 │                            CLIENT REPLICA MVC (React Native)                            │
 │  [Model: expo-sqlite]            <-->  [Controller: TOTP / Sync] <--> [View: Vector QR / UI]│
 │   - local_manifest                      - otpauth Engine (RFC 6238)    - react-native-   │
-│   - pending_sync_queue (UUID v4)        - Marshal Override Logic         qrcode-svg     │
+│   - pending_sync_queue (UUID v4)        - TOTP / scan decisions           qrcode-svg     │
 │   - expo-secure-store (Seeds)           - Scanner Clock Trust Anchor   - Scanner HUD    │
 └─────────────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -43,7 +43,7 @@ To satisfy academic midterm assessment criteria requiring strict MVC adherence w
 
 2. **Client Replica MVC (React Native Expo Mobile Applications):**
    - **Model:** Local persistent state stored in `expo-sqlite` (`local_manifest`, `pending_sync_queue`) and hardware-encrypted seeds stored in `expo-secure-store`.
-   - **Controller:** Client domain controllers (`totpController`, `scannerController`, `syncController`, `marshalOverrideController`) handling cryptographic evaluation, local admission states, and store-and-forward syncing.
+   - **Controller:** Client services and hooks handle QR validation, local admission states, and store-and-forward syncing. No marshal PIN override is implemented; exceptional entry uses the event lead's manual procedure.
    - **View:** Student ticket screens and Security Staff scanner screens displaying rotating QR codes, camera HUDs, and admission status badges.
 
 ---
@@ -66,7 +66,7 @@ To satisfy academic midterm assessment criteria requiring strict MVC adherence w
                   - Scanner validates against local_manifest
                   - Scans buffered in pending_sync_queue
                                           │
-               [Opportunistic Connectivity Restored (Heartbeat)]
+               [Connectivity Restored / Sync Retry]
                                           │
                                           ▼
                        ┌─────────────────────────────────────┐
@@ -79,4 +79,4 @@ To satisfy academic midterm assessment criteria requiring strict MVC adherence w
 ### Key Venue Dynamics:
 * **Dead Zones:** High-density crowd areas cause cellular tower saturation. Scanners cannot rely on HTTP calls at the moment of scanning.
 * **Gate Partitioning:** Tickets are pre-allocated to specific gates (`gate_id`) to reduce fraud surfaces across disparate physical entrances.
-* **Surge Conditions:** If a bottleneck occurs at Gate 1, authorized marshals use a PIN override to reroute and force-admit attendees while capturing full audit telemetry.
+* **Surge conditions:** A staff member cannot bypass a gate or ticket decision with a PIN. The event lead makes any exceptional physical admission decision using the manual procedure in the runbook; disconnected devices cannot report that decision to the server as an override.

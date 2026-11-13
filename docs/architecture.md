@@ -53,20 +53,17 @@ Do not move admission, capacity, assignment, or authorization rules into a view.
 - Scanner manifests and pending scan payloads are encrypted with AES-256-GCM before SQLite persistence; their encryption keys stay in Expo SecureStore. See [ADR 010](../architecture/decisions/010-encrypted-offline-ticket-and-scan-storage.md).
 - Never enable predictable demo credentials by default. If demo accounts are added, gate them behind an explicit opt-in that cannot be enabled in production.
 
-## 30–50% milestone focus
+## Implementation status and scope
 
-A defensible midterm slice should demonstrate working paths across all three clients:
+The team considers the agreed MVP implementation complete across all three clients. The shipped paths include administrator event, gate, staff, student, ticket, and activity management; a student wallet with a rotating QR; and assigned-gate scanner manifests, offline validation, encrypted local queueing, retry-safe synchronization, and server reconciliation. See [system status](../.agents/PHASES.md) for the completion summary and the remaining venue-readiness evidence.
 
-1. Administrator sign-in, dashboard metrics, event setup, gate assignment, and reviewable system logs.
-2. Student sign-in and an owned ticket display with a rotating QR.
-3. Security staff sign-in, assigned-gate manifest download, offline scan validation, local scan queue, and idempotent sync/reconciliation.
-4. Clear outcomes for cancellation, postponement/rescheduling, gate mismatch, invalid or expired tickets, offline operation, and sync conflicts.
+Accepted limits remain part of the product behavior: screenshots from the current TOTP step can be replayed within that step; disconnected scanners cannot coordinate or receive server changes; and offline scan success stays provisional until reconciliation. The system detects some conflicts after reconnect but cannot reverse a physical admission.
 
-Keep unimplemented flows explicitly marked as planned. Payments, general-purpose RBAC, cloud-to-edge replication, and service decomposition are outside this milestone unless a course requirement changes.
+Payments, general-purpose RBAC, cloud-to-edge replication, and service decomposition are outside the agreed scope. Do not describe them as unfinished MVP features unless an updated requirement adds them.
 
 ## How to read the specifications
 
 - [`api.md`](api.md) is the endpoint inventory and API authoring guide.
 - [`design-decisions.md`](design-decisions.md) records accepted choices, UI guidance, and how to add an ADR.
 - [`architecture/`](../architecture/) holds detailed schemas, workflows, endpoint examples, and domain decisions.
-- Code and migrations show what is currently implemented. Architecture documents may describe planned work; each endpoint or feature must be labeled as implemented or planned rather than presented as live behavior.
+- Code and migrations show current behavior. The numbered files in [`architecture/`](../architecture/) are historical design references where labeled; verify them against this guide, the API contract, and current source before presenting a detail as live behavior.

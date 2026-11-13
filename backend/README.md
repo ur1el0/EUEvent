@@ -2,6 +2,8 @@
 
 This directory contains the PHP 8.5 / Laravel 13 API. It owns authentication, role checks, event and venue data, ticket issuance, encrypted ticket seeds, scan reconciliation, and audit history. The React dashboard and Expo app use its versioned `/api/v1` JSON endpoints.
 
+The team considers the agreed MVP feature scope complete. This backend README describes the implemented API; database, mail, PostgreSQL concurrency, and deployment checks remain environment-specific release work tracked in [system status](../.agents/PHASES.md).
+
 ## Main API areas
 
 - Authentication and role-specific student, security-staff, and administrator access.

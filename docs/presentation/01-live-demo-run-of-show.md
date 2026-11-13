@@ -1,6 +1,6 @@
 # Live demo run of show
 
-This is a 10–15 minute demonstration of the current local build. It covers the three end-user roles and one controlled API outage. It assumes the presenter has rehearsed with the same Fedora machine, phones, and demo database that will be used in the room.
+This is a 10–15 minute demonstration of the completed agreed MVP scope. It covers the three end-user roles and one controlled API outage. Rehearse with the same Fedora machine, phones, app build, and isolated demo database that will be used in the room.
 
 ## What the demo proves
 
@@ -17,7 +17,7 @@ It does **not** prove that independent scanners can prevent a duplicate admissio
 
 - Use the isolated Fedora/Lerd presentation database described in [the backend README](../../backend/README.md#local-presentation-mode). Do not use the shared Supabase database for a public demo.
 - Connect Fedora, the dashboard browser, and the Expo phone to the same Wi-Fi or presentation router. The local API avoids WAN dependence; Wi-Fi between devices is still required.
-- Keep the API terminal, Vite terminal, and Expo Metro terminal visible and ready. Expo Go needs Metro to keep delivering the app bundle. An installed app build is needed if local Wi-Fi or Metro itself may be unavailable.
+- Keep the API and Vite terminals visible. For development, Expo Go also needs the Metro terminal. For a presentation where Metro or local Wi-Fi may disappear, install the standalone APK first; it contains the app bundle. The scanner still needs a saved manifest before it can validate tickets offline.
 - Use a student phone and a different staff phone if available. A second staff device is useful for explaining the multi-scanner limitation, but do not represent a simulated conflict as a test result.
 - Turn on automatic date and time on the student and scanner phones. A large clock difference can make a live TOTP appear expired.
 - Keep all real student data, passwords, `.env` files, ticket secrets, and QR payloads out of screenshots and recordings.
@@ -42,7 +42,7 @@ Its `.env` must point `VITE_BACKEND_ORIGIN` to `http://127.0.0.1:8002` for this 
 npm run start:lan
 ```
 
-The launcher checks the local API, finds Fedora’s current LAN address, and starts Expo with that API URL. Scan the Expo development QR with Expo Go. If a phone has a stale saved API address, update it in server settings before the rehearsal.
+The launcher checks the local API, finds Fedora’s current LAN address, and starts Expo with that API URL. Scan the Expo development QR with Expo Go. Alternatively, install the standalone APK using the [mobile setup guide](../../security-scanner/README.md#build-and-install-an-android-apk). Before rehearsal, set the app's server URL to the Fedora API and confirm that login and manifest download work.
 
 ## Run of show
 
@@ -58,7 +58,7 @@ The launcher checks the local API, finds Fedora’s current LAN address, and sta
 | 9:00–11:00 | Scan the student's live pass once with the Gate A scanner. | The scanner displays local validation and stores the scan. When connected, a background sync may quickly change the result to server-confirmed. Explain the two states. |
 | 11:00–13:00 | Demonstrate an API-only outage: stop the Laravel API terminal while leaving Wi-Fi and Metro up. Scan a new valid pass/ticket prepared for the demo. | The scanner validates against its cached manifest and queues the result on the device. The scan should not block while waiting for Laravel. Its success is provisional, not a global admission guarantee. |
 | 13:00–14:00 | Restart the API and use Sync or allow the scanner's retry. Show the final decision in the scanner and the admin activity/log view. | Laravel verifies the proof and event/ticket/gate state, records the result, and returns the authoritative decision. A rejected sync outcome requires staff review of the physical entry. |
-| 14:00–15:00 | Summarize the fault boundary and the remaining roadmap. | The system remains useful during an API outage but cannot receive remote changes or coordinate two disconnected gates in real time. |
+| 14:00–15:00 | Summarize the fault boundary and post-MVP operational checks. | The agreed feature scope is complete; the system remains useful during an API outage but cannot receive remote changes or coordinate two disconnected gates in real time. |
 
 ### Important: prepare two independent scan cases
 
@@ -68,16 +68,16 @@ If the available seeded event is still a draft, create and schedule the event be
 
 ## Outage drill
 
-For an API-only outage, stop the Laravel server but keep local Wi-Fi, the Expo app, and Metro running. Scan a valid current pass that exists in the scanner's downloaded manifest. Look for the locally validated/queued wording, then restart Laravel and sync. This tests the core offline queue path while avoiding an Expo Go bundle interruption.
+For an API-only outage, stop the Laravel server but keep local Wi-Fi running. With Expo Go, keep Metro running; with the standalone APK, Metro is not needed. Scan a valid current pass that exists in the scanner's downloaded manifest. Look for the locally validated/queued wording, then restart Laravel and sync. This tests the offline queue path.
 
-Do not turn off Wi-Fi as a shortcut during an Expo Go demo. If the phone loses Metro, Expo Go may stop loading the JavaScript bundle; that tests the development transport, not the scanner's offline database. A standalone mobile build is the right setup for a demonstration where local Wi-Fi may disappear completely.
+If Wi-Fi is turned off during the rehearsal, use the installed APK rather than Expo Go. Expo Go may lose its JavaScript bundle connection to Metro; the APK contains the application bundle and can continue local scanning from its cached manifest. Turning Wi-Fi off also prevents API synchronization until the network returns.
 
 ## Recovery plan
 
 | Failure | Presenter response |
 | --- | --- |
 | Dashboard cannot reach the API | Check API terminal and `VITE_BACKEND_ORIGIN`; use the local demo API on port 8002. Continue from already-open screens only if the state is clear. |
-| Expo Go cannot load/reload | Restore same-Wi-Fi access to Metro and the phone's API URL. Narrate the mobile step using the prepared rehearsal recording only if recordings are permitted; do not call that a live test. |
+| Expo Go cannot load/reload | Restore same-Wi-Fi access to Metro and the phone's API URL, or use the installed standalone APK. Narrate from a recording only if permitted; do not call that a live test. |
 | No event appears | Verify that the dashboard is using the demo API/database. Create the event, assign its gates, and set it to scheduled before manifest download. |
 | Manifest is stale | While online, refresh assigned gates and download the latest manifest before scanning. During a real outage, explain that later changes cannot reach the device. |
 | QR rejected as expired | Verify automatic date/time on both devices, then ask the student to show the current QR and scan again in the next 30-second window. |

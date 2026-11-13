@@ -205,7 +205,7 @@ Returns a paginated directory of student accounts. Optional query fields are `se
 
 ### `POST /api/v1/admin/students`
 
-Creates a student account and returns HTTP 201 with `{ "student": { "id", "name", "email", "student_number", "created_at" } }`. Request fields are `name`, institutional `email`, `student_number`, `password`, and `password_confirmation`. The server assigns the `student` role; clients cannot select a role. Email is normalized to lowercase, and student number and email must be unique. Passwords require at least 12 characters and are hashed by Laravel. The response and activity log never include the password. The administrator must deliver the initial password through an approved private channel; a student password-change/reset flow remains future work. The creation and its `student_account_created` activity entry are committed in one transaction.
+Creates a student account and returns HTTP 201 with `{ "student": { "id", "name", "email", "student_number", "created_at" } }`. Request fields are `name`, institutional `email`, `student_number`, `password`, and `password_confirmation`. The server assigns the `student` role; clients cannot select a role. Email is normalized to lowercase, and student number and email must be unique. Passwords require at least 12 characters and are hashed by Laravel. The response and activity log never include the password. The administrator must deliver the initial password through an approved private channel. The current mobile app also supports account password recovery and signed-in password change; see the [current API guide](../docs/api.md). The creation and its `student_account_created` activity entry are committed in one transaction.
 
 ### `GET /api/v1/admin/activity-logs`
 
