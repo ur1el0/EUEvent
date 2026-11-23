@@ -1,0 +1,13 @@
+{
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EUEVENT_LOCAL_DEMO_HTTP": "true"
+      }
+    }
+  }
+}

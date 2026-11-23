@@ -1,45 +1,42 @@
-# EUEvent Engineering Phases
+# EUEvent System Status
 
-This roadmap tracks the current MVP, not a production readiness certification. Items marked implemented describe repository code; they still need the runtime validation listed in Phase 4.
+Last reviewed: 2026-11-13
 
-## Phase 1 — Laravel foundation and roles
+## Completion status
 
-**Implemented in the repository:** Laravel API, PostgreSQL schema/migrations, Sanctum authentication, three roles, role middleware, student/staff/admin endpoints, and activity/audit records.
+The team considers the agreed EUEvent MVP feature scope complete on `main`. The system includes the Laravel API, administrator dashboard, student ticket wallet, and security scanner. This status describes implemented product scope; it is not a production certification or a claim that every deployment and physical-device scenario has been independently verified.
 
-**Still to validate:** Apply all new migrations to the shared Supabase project and verify deployment configuration without exposing credentials.
+## Completed product scope
 
-## Phase 2 — Ticket issuance and gate operations
+- Laravel API with administrator, student, and security-staff roles, authentication, event and venue management, gate assignments, ticket issuance and revocation, activity records, and audit history.
+- Student mobile login, password recovery and change, personal ticket wallet, and a 30-second rotating QR generated from a protected ticket secret.
+- Security-staff mobile login, account activation/deactivation, assigned-gate manifests, encrypted local manifest and scan storage, offline validation and queueing, retry-safe synchronization, and server-side reconciliation.
+- Administrator web workflows for accounts, venues, gates, event lifecycle, assignments, tickets, activity, and operational metrics.
+- Local Fedora/Lerd presentation setup, team setup guidance, API and architecture documentation, and an event-day offline procedure.
+- Automated backend, dashboard, and mobile checks for implemented workflows.
 
-**Implemented in the repository:** Event/gate configuration, staff assignments, student ticket issuance and revocation, gate-scoped manifests, and administrator views for core workflows.
+## Operating limits to explain
 
-**Still to validate:** Exercise event creation through ticket display and gate assignment on the actual presentation setup; verify staff assignment and ticket counts are correct.
+- A screenshot captured in the current 30-second step may still be accepted if that scanner has not already claimed the ticket.
+- Disconnected scanners cannot share claims or receive cancellations, revocations, staff deactivation, or gate changes. Local acceptance is provisional until server reconciliation.
+- Distinct offline scans of one ticket can both be accepted locally. The server detects and records the conflict after sync; it cannot reverse a physical entry.
+- The student and scanner device clocks must agree because the scanner accepts only the exact current TOTP step.
+- Password-reset email delivery depends on the deployment's mail transport. The project has not published performance, availability, PostgreSQL concurrency, or accessibility guarantees without recorded measurements.
+- ADR 014 freshness thresholds remain a team/venue policy decision until formally approved.
 
-## Phase 3 — Offline scan and reconciliation
+## Post-completion operational validation
 
-**Implemented in the repository:** Encrypted local gate manifests, current-step rotating QR validation, a persistent offline scan queue, same-ID retry behavior, server-side transactional reconciliation, and collision auditing.
+These are release and venue-readiness checks, not unimplemented MVP feature work. Record the build, environment, device, observed result, and evidence before marking a check complete.
 
-**Known limits:** A screenshot can be replayed during its current 30-second step. Disconnected scanners cannot coordinate single use or receive event/ticket/staff updates. Server reconciliation flags duplicates after reconnect; it cannot reverse physical entry.
+- [ ] Confirm the target database has all migrations and verify deployment secrets through the team's approved process.
+- [ ] Verify password-reset email delivery with the configured non-production mail transport.
+- [ ] Rehearse manifest download, offline scan, app restart, reconnection, and queue synchronization on the event devices.
+- [ ] Exercise screenshot replay and two-scanner collision behavior on physical devices; review the server audit results.
+- [ ] Verify PostgreSQL locking and concurrent reconciliation against an isolated PostgreSQL environment.
+- [ ] Approve or revise the ADR 014 freshness thresholds with event operators.
+- [ ] Measure performance and review accessibility on the supported device set before making service-level claims.
+- [ ] Complete deployment backup, restore, monitoring, retention, and incident-response plans before a production venue deployment.
 
-**Still to validate:** Complete offline scan → app restart → reconnect → queue sync on physical devices. Verify PostgreSQL lock behavior and multiple-scanner contention.
+## Source of truth
 
-## Phase 4 — Client and account hardening
-
-**Implemented on the hardening branch:** Mobile password recovery for students and staff, administrator activation/deactivation of scanner staff, API token revocation, a cached per-manifest ticket lookup index, tests, and corrected security/operating documentation.
-
-**Implemented on `feature/milestone-gaps`:** Signed-in password change (`PATCH /api/v1/auth/password`) that keeps the current token and revokes the others; event window and generation time in gate manifests; the scanner's offline manifest freshness rule ([ADR 014](../architecture/decisions/014-offline-manifest-freshness-policy.md), thresholds proposed and pending team approval); and the [event-day runbook](../docs/event-day-runbook.md).
-
-**Still to validate:** Apply the staff migration in the target database; configure a real mail transport and receive a reset email; test account recovery, password change, and deactivation on the devices and dashboard used for the demonstration; approve the ADR 014 thresholds.
-
-## Phase 5 — Readiness checks before the 30–50% milestone review
-
-- [ ] Run the full backend test suite and client build/lint checks on the hardening branch.
-- [ ] Test mobile login, reset email, reset-token entry, ticket display, screen-reader labels, and bottom safe-area behavior on actual phones.
-- [ ] Test staff account activation/deactivation and gate assignment in the admin dashboard against the local API.
-- [ ] Run offline scanning on two devices, including same-step screenshot replay and duplicate presentation, then synchronize and review the collision.
-- [ ] Benchmark realistic manifest sizes and scan queues on supported phones and PostgreSQL; publish measured limits only after recording results.
-- [x] Document the manual admission procedure for cancellation, reschedule, stale manifest, lost phone, low battery, and offline collision. See the [event-day runbook](../docs/event-day-runbook.md).
-- [ ] Get team approval for the ADR 014 manifest freshness thresholds (6-hour warning, 24-hour maximum age, 60-minute post-event grace).
-
-## Beyond this MVP milestone
-
-Production deployment automation, backups/restore drills, measured load guarantees, stronger online/device revocation controls, robust multi-device offline coordination, and comprehensive accessibility/usability evaluation remain future work.
+The current implementation is described in the root [README](../README.md), [product requirements](PRD.md), [architecture guide](../docs/architecture.md), [API contract](../docs/api.md), and the component READMEs. Historical design documents are labeled and should be read alongside those current guides. The [backlog](backlog.md) tracks the operational checks above.

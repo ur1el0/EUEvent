@@ -40,7 +40,7 @@ Use these notes to explain the demonstration without overstating what the softwa
 
 **Say:** “A poor internet connection does not automatically stop a prepared scanner. If the scanner has a valid cached manifest and the student has the ticket saved, local QR checking and queueing still work. Sync waits for the API.”
 
-**Explain:** There are two separate links: internet-to-hosted-server and local-Wi-Fi-to-Fedora/phone. For the Fedora presentation, Laravel and PostgreSQL can stay on the local machine, so the public internet is not part of each scan. The phone still needs the venue's local Wi-Fi to reach that machine when refreshing or syncing. Expo Go also depends on Metro while running; a standalone build is better if the local Wi-Fi itself may fail.
+**Explain:** For a Fedora presentation, Laravel and PostgreSQL can stay on the local machine, so public internet is not part of each scan. The phone needs the local Wi-Fi to reach Fedora when refreshing a manifest or syncing. A standalone APK contains the app bundle and does not need Metro; Expo Go needs Metro to load and reload JavaScript. Either client can keep scanning from an already downloaded manifest while the API is unreachable.
 
 ## Likely questions and accurate answers
 
@@ -66,16 +66,16 @@ Use these notes to explain the demonstration without overstating what the softwa
 
 ### “Does the dashboard show all people inside?”
 
-**Answer:** “It shows server-recorded admissions and current admin data. A scan still queued on an offline phone has not reached the server, and scanner heartbeat/pending-queue telemetry is not yet available in the metrics API. We should not describe the current dashboard as a complete live occupancy count during an outage.”
+**Answer:** “It shows server-recorded admissions and current admin data. A scan still queued on an offline phone has not reached the server, and the dashboard does not report a live count of each scanner's pending queue. It is not a complete occupancy counter during an outage.”
 
 ### “Why not make every offline scan final?”
 
 **Answer:** “A disconnected phone cannot check changes or scans that happened elsewhere. Calling a local decision final would overstate what that device knows. The system records a fast provisional decision and reconciles it when the authoritative server is reachable.”
 
-### “What is the next half?”
+### “Is the system finished?”
 
-**Answer:** “First we need a repeatable physical demo and event-day procedures. Then we can improve conflict review, account recovery, queue visibility, standalone deployment, and operational testing. The exact percentage depends on our course rubric, so we track completion against rubric items and evidence rather than guessing from code size.”
+**Answer:** “The agreed MVP feature scope is implemented across the API, administrator dashboard, student wallet, and security scanner. We still need environment-specific release evidence—such as mail delivery, PostgreSQL concurrency, and venue-device rehearsals—before claiming production readiness. Those checks do not mean the implemented feature scope is missing.”
 
 ## Closing
 
-**Say:** “The key design choice is separating immediate local validation from final server reconciliation. That keeps the line moving through a short API outage while making the limitations visible: stale data and disconnected scanners can disagree. Our next work is to prove the end-to-end flow on real devices and give staff a precise procedure for those cases.”
+**Say:** “The key design choice is separating immediate local validation from final server reconciliation. That keeps a prepared scanner useful during an API outage while making the limitations visible: stale data and disconnected scanners can disagree. The agreed MVP scope is complete; the remaining work is to collect deployment and venue-specific evidence and follow the documented event-day procedures.”

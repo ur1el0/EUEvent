@@ -29,40 +29,8 @@ In a multi-gate offline university environment, attendees attempting to enter th
 
 ---
 
-## 3. Marshal Override PIN Workflow
+## 3. Current exceptional-admission procedure
 
-During emergency situations (e.g. sudden rainstorm, physical gate bottleneck, electrical failure at Gate 1 requiring redirection of crowds to Gate 2), authorized Security Staff assigned as gate marshals can force-admit attendees. “Gate marshal” describes this operational duty; the account role remains `security_staff`.
+The historical PIN workflow above was rejected. There is no in-app marshal override and the API rejects requests that set `is_override = true`. Security staff contact the event lead and follow the [manual exception procedure](../docs/event-day-runbook.md#manual-exception-procedure). Record the physical decision through the event's agreed procedure and review it after connectivity returns; do not represent it as a software-approved admission.
 
-```
-[ Scanner Screen: Gate Mismatch or Unclaimed Verification ]
-                            │
-                            ▼
-               [ Tap "Marshal Override" ]
-                            │
-                            ▼
-              [ Enter 6-Digit Master PIN ]
-                            │
-              ┌─────────────┴─────────────┐
-              ▼                           ▼
-        [ Invalid PIN ]             [ Valid PIN ]
-              │                           │
-       Block Admission;           1. UPDATE local_manifest
-       Log Failed Attempt            SET status = 'claimed'
-                                  2. INSERT INTO pending_sync_queue
-                                     (is_override = 1, status = 'OVERRIDE')
-                                  3. Play Authorized Override Audio Tone
-                                  4. Emit High-Contrast Amber HUD Feedback
-```
-
----
-
-## 4. Forensic Telemetry & Server Audit Recording
-When an override scan syncs to the authoritative Laravel server:
-1. `SyncReconciliationService` detects `is_override == true`.
-2. Creates an immutable record in `audit_logs`:
-   - `anomaly_type`: `'OVERRIDE'`
-   - `ticket_id`: Target ticket ID
-   - `gate_id`: Scanner's current physical gate
-   - `device_id`: Device identifier of the scanning marshal
-   - `server_received_at`: Server timestamp
-3. Displays instantly on the Web Admin Dashboard's Override Feed for administrative accountability.
+The gate mismatch and assigned-manifest rules remain in force. If a ticket is missing, belongs to another gate, or its current state is uncertain while offline, refer the decision to the event lead rather than bypassing the scanner.

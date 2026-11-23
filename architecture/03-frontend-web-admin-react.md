@@ -3,7 +3,7 @@
 > **Status:** Historical design reference. Some behavior below is planned or superseded. For current behavior, see [the current architecture](../docs/architecture.md), [API guide](../docs/api.md), and [security notes](../.agents/SECURITY.md); source code and tests are authoritative.
 
 ## 1. Overview
-The desktop Administrator Web Dashboard lets administrators set up events, manage gate assignments, and monitor system activity. It visualizes admission throughput, gate health, offline sync queues, split-brain collisions, and marshal overrides. Security Staff use the separate offline mobile scanner app and do not use this dashboard as an end-user surface.
+The desktop Administrator Web Dashboard lets administrators set up events, manage gate assignments, and monitor system activity. It shows server-recorded metrics and recent activity; it does not receive offline queue telemetry, provide a complete live occupancy count during an outage, or record marshal overrides. Security Staff use the separate offline mobile scanner app and do not use this dashboard as an end-user surface.
 
 ---
 
@@ -26,23 +26,21 @@ App
     ├── MetricsSummaryGrid
     │   ├── TotalIssuedCard
     │   ├── TotalAdmittedCard
-    │   ├── PendingSyncCard
     │   └── AnomalyCountCard
     ├── GateThroughputPanel
     │   └── GateProgressBarCard (Gate 1, Gate 2, Gym)
-    ├── ForensicAlertFeed (Collisions & Gate Mismatches)
-    └── MarshalOverrideLogTable
+    └── ActivityAndAuditLog
 ```
 
-The dashboard is restricted to the `administrator` role. It supports event configuration, gate assignment management, live operational metrics, and system/audit log review.
+The dashboard is restricted to the `administrator` role. It supports event configuration, gate assignment management, periodically refreshed server metrics, and system/audit log review.
 
 ---
 
 ## 4. Polling Strategy & Reliability
 
-* **Interval:** Polling triggers every 5 seconds under active event conditions (fallback to 10s on idle).
+* **Interval:** Dashboard metrics refresh periodically; see the current implementation for the configured interval.
 * **Graceful Degradation:** If network polling fails momentarily, the UI displays a subtle "Reconnecting..." indicator without tearing down the existing metrics DOM tree or throwing unhandled JavaScript runtime errors.
 * **Visual Anomaly Encoding:**
   * **Green (`bg-emerald-500`):** Normal, valid ticket admission.
-  * **Amber (`bg-amber-500`):** Marshal Override PIN bypass.
-  * **Red (`bg-rose-500`):** Split-Brain Collision anomaly requiring immediate staff attention.
+  * **Amber (`bg-amber-500`):** Attention or pending review.
+  * **Red (`bg-rose-500`):** A rejected or anomalous server-recorded outcome requiring review.

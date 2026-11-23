@@ -3,7 +3,7 @@
 > **Status:** Historical design reference. Some behavior below is planned or superseded. For current behavior, see [the current architecture](../docs/architecture.md), [API guide](../docs/api.md), and [security notes](../.agents/SECURITY.md); source code and tests are authoritative.
 
 ## 1. Overview
-The Student Ticket Wallet application provides attendees with offline access to their cryptographic event passes. It dynamically generates a 6-digit TOTP token every 30 seconds entirely on-device and renders an SVG vector QR code that defeats static screenshot fraud.
+The Student Ticket Wallet provides a student's issued tickets and generates a rotating QR proof on-device. The proof changes every 30 seconds, which limits how long an old image can be used; it does not prevent a screenshot from being replayed during the same active time step.
 
 ---
 
@@ -19,8 +19,8 @@ The Student Ticket Wallet application provides attendees with offline access to 
 
 ### 3.1 QR String Payload Structure
 ```
-MSEUF:{ticket_id}:{totp_token}
-Example: MSEUF:10492:839201
+EUEVENT1:{ticket_id}:{step}:{code}
+Example: EUEVENT1:10492:59664480:839201
 ```
 
 ### 3.2 30-Second Refresh Cycle
@@ -32,5 +32,6 @@ Example: MSEUF:10492:839201
 
 ---
 
-## 4. Screenshot Invalidation Rationale
-Because the student QR payload rotates every 30 seconds and scanners validate incoming tokens against the scanner's hardware clock within a strict window of $w = 1$, any screenshot shared via messaging apps becomes useless within seconds.
+## 4. Screenshot replay boundary
+
+The scanner accepts only the exact current 30-second step (`drift = 0`). A screenshot copied during that step may still be accepted if the scanner has not already claimed the ticket. The same scanner blocks a later local duplicate, but another disconnected scanner cannot see that claim. Rotation narrows the replay window; it does not prove identity or that the student is holding the live app. Keep both device clocks set to automatic.

@@ -2,6 +2,8 @@
 
 The desktop React and TypeScript dashboard uses the Laravel API for administrator workflows. It supports student and security-staff account creation, venue and physical gate setup, event scheduling and lifecycle changes, event gate/staff assignment, ticket issuance, operational metrics, and activity-log review.
 
+The team considers the agreed MVP feature scope complete. The metrics are server-recorded; scans that remain queued on a disconnected phone are not included until the scanner synchronizes. See [system status](../.agents/PHASES.md) for the remaining operational evidence checks.
+
 The dashboard keeps the Sanctum bearer token in memory. Reloading the page clears the session and requires another sign-in. Metrics refresh every 10 seconds and retain the last successful result during brief network failures.
 
 ## Run locally with Lerd

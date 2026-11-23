@@ -3,7 +3,7 @@
 > **Status:** Historical design reference. Some behavior below is planned or superseded. For current behavior, see [the current architecture](../docs/architecture.md), [API guide](../docs/api.md), and [security notes](../.agents/SECURITY.md); source code and tests are authoritative.
 
 ## 1. Overview
-Security Staff use the Mobile Scanner application at physical venue entrances (e.g. Gate 1, Gate 2, Gymnasium) to validate student tickets and manage physical access. It operates as an autonomous Client Replica MVC: it verifies dynamic student TOTP QR tokens completely offline against a pre-loaded SQLite manifest and queues scans in an offline buffer for opportunistic background synchronization. The authenticated role is `security_staff`; marshal override is an authorized staff capability, not a separate role.
+Security Staff use the Mobile Scanner application at physical venue entrances to validate student tickets and manage physical access. A prepared scanner checks a rotating TOTP token against its assigned local manifest and queues scans for synchronization. Its local decision is provisional; it cannot receive server changes or other scanners' claims while disconnected. The authenticated role is `security_staff`; a marshal PIN override is not implemented.
 
 ---
 
@@ -11,7 +11,7 @@ Security Staff use the Mobile Scanner application at physical venue entrances (e
 * **Framework:** React Native with Expo (Managed Workflow, TypeScript).
 * **Local Database:** `expo-sqlite` (chosen over native C++ SQLite bridges to avoid build compilation friction and runtime linking errors).
 * **Camera Hardware Engine:** `expo-camera` with barcode scanner HUD callbacks.
-* **Cryptographic Engine:** `otpauth` (RFC 6238 implementation with tolerance $w = 1$).
+* **Cryptographic Engine:** RFC 6238 TOTP. The current scanner accepts the exact current 30-second step only (`drift = 0`).
 
 ---
 
@@ -73,5 +73,6 @@ CREATE INDEX IF NOT EXISTS idx_pending_synced ON pending_sync_queue(synced);
 
 ---
 
-## 5. Marshal Override Mode
-During high-pressure physical crowd surges or unexpected gate reassignments, an authorized supervisor enters a master PIN into the scanner interface. The controller force-admits the attendee, updates `local_manifest`, and enqueues a record with `is_override = 1`.
+## 5. Exceptional physical admission
+
+There is no in-app marshal PIN override. The API rejects `is_override = true`. During an outage, an event lead follows the [manual exception procedure](../docs/event-day-runbook.md#manual-exception-procedure) and reviews the decision after connectivity returns. A manual physical admission is not represented as a server-confirmed software approval.

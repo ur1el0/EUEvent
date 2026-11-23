@@ -1,6 +1,6 @@
 # EUEvent setup guide
 
-This guide brings together the common developer and presentation setups for Fedora. It covers the isolated Lerd demo, administrator dashboard, Expo Go app, shared Supabase development, and the most common connection errors.
+This guide brings together the common developer and presentation setups for Fedora. It covers the isolated Lerd demo, administrator dashboard, Expo Go development app, installable Android APK, shared Supabase development, and the most common connection errors.
 
 ## Choose a setup profile
 
@@ -17,8 +17,9 @@ The local presentation profile is easiest to reproduce and safest for demos. It 
 - Fedora with PHP 8.5, Composer, Node.js 22, and npm.
 - Git and the repository's dependencies installed.
 - Lerd with its PostgreSQL service for the isolated demo database.
-- Expo Go on an iOS or Android phone for development demos.
-- Fedora and the phone on the same Wi-Fi network for Expo Go and LAN API access.
+- Expo Go on an iOS or Android phone for development previews, or a standalone APK for a presentation that should not depend on Metro.
+- Fedora and the phone on the same Wi-Fi network for LAN API access. A standalone APK contains the app bundle, but the phone still needs a route to Fedora to refresh manifests and synchronize scans.
+- For local APK builds only: a supported Java JDK, Android SDK, and Android platform tools (`adb`).
 
 Check the local toolchain:
 
@@ -124,7 +125,7 @@ Open the Vite URL printed in the terminal, usually `http://localhost:5173`, and 
 
 Vite reads `.env.local` with higher priority than `.env`. If both files exist with different backend origins, `.env.local` wins. Restart Vite after changing an environment file; the running process does not automatically adopt all environment changes.
 
-### 4. Start the Expo mobile app
+### 4. Start the Expo mobile app in development mode
 
 In a third terminal, from `security-scanner/`:
 
@@ -148,7 +149,27 @@ ip -brief -4 addr
 
 Use the address for the active Wi-Fi interface, such as `wlp1s0`. Do not use `127.0.0.1`, Docker bridge addresses, or the Lerd loopback address on a physical phone. Saving a different server clears the current sign-in because each API has its own session tokens.
 
-### 5. Prepare an event for testing
+### 5. Build and install the Android APK
+
+Use this when the presentation phone should not need Expo Go or Metro. The mobile app README contains the [complete APK build and USB install instructions](../security-scanner/README.md#build-and-install-an-android-apk). The core Fedora commands are:
+
+```bash
+cd security-scanner
+npm ci
+export EUEVENT_LOCAL_DEMO_HTTP=true
+export EXPO_PUBLIC_API_BASE_URL="http://<FEDORA_WIFI_IP>:8002/api/v1"
+npx expo prebuild --platform android
+cd android
+./gradlew assembleRelease
+cd ..
+adb install -r android/app/build/outputs/apk/release/app-release.apk
+```
+
+Replace `<FEDORA_WIFI_IP>` with the active Fedora Wi-Fi address shown by `ip -brief -4 addr`. The local presentation API must be listening on port `8002`. Android blocks cleartext HTTP by default on modern versions, so this presentation-only build enables it through a config plugin. Use the HTTP build only on a trusted local network. A deployed system carrying real credentials or ticket data must use HTTPS. The app can update its saved server URL from Settings if the address changes.
+
+The app bundle is embedded in the APK, so Metro is not needed at runtime. A network connection to the API is still needed to sign in, fetch current tickets/manifests, and synchronize. Previously downloaded ticket and manifest data can support local scanning during an outage.
+
+### 6. Prepare an event for testing
 
 1. Sign in to the desktop dashboard as `demo-admin@euevent.test`.
 2. Create student and security-staff accounts, or use existing demo accounts.

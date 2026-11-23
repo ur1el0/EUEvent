@@ -55,7 +55,7 @@ Handles attendee ticket provisioning:
 * **Tokens:** Bearer token authentication via Laravel Sanctum for the Student app, Security Staff scanner app, and Administrator web dashboard.
 * **Role Segregation:**
   * `student`: Allowed to read personal issued tickets and retrieve assigned encrypted seeds.
-  * `security_staff`: Allowed to download only assigned gate manifest partitions and post sync batches to `/api/v1/sync/batch`; authorized staff may use the marshal override.
+  * `security_staff`: Allowed to download only assigned gate manifests and post sync batches to `/api/v1/sync/batch`. The API rejects override requests; exceptional admission follows the event lead's manual procedure.
   * `administrator`: Allowed to set up events, manage gate assignments, and access system logs and monitoring metrics.
 
 These are the only end-user roles. A gate marshal is an operational duty held by authorized Security Staff, not a separate account role.
